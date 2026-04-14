@@ -52,14 +52,14 @@ source install/setup.bash
 ## Run Sequence
 
 아래 순서대로 총 6개의 터미널을 사용합니다.
-
+<br><br>
 ### Terminal 1: QGroundControl
 
 ~~~bash
 cd ~/Downloads
 ./QGroundControl-x86_64.AppImage
 ~~~
-
+<br><br>
 ### Terminal 2: Gazebo
 
 ~~~bash
@@ -67,7 +67,7 @@ cd ~/ros2_ws/src/warehouse_offboard
 source ~/.bashrc
 gz sim -r ~/ros2_ws/src/warehouse_offboard/worlds/warehouse.sdf
 ~~~
-
+<br><br>
 ### Terminal 3: PX4
 
 ~~~bash
@@ -75,13 +75,13 @@ cd ~/PX4-Autopilot
 source ~/.bashrc
 PX4_GZ_STANDALONE=1 PX4_SYS_AUTOSTART=4001 PX4_SIM_MODEL=gz_x500 PX4_GZ_MODEL_POSE="-10,0,0.3,0,0,0" ./build/px4_sitl_default/bin/px4
 ~~~
-
+<br><br>
 ### Terminal 4: MicroXRCEAgent (ROS ↔ PX4 bridge)
 
 ~~~bash
 MicroXRCEAgent udp4 -p 8888
 ~~~
-
+<br><br>
 ### Terminal 5: goto_point.py 실행 (드론 미션 백엔드)
 
 ~~~bash
@@ -89,7 +89,7 @@ cd ~/ros2_ws
 source install/setup.bash
 ros2 run warehouse_offboard goto_point --ros-args --params-file ~/ros2_ws/src/warehouse_offboard/params/goto_point.yaml
 ~~~
-
+<br><br>
 ### Terminal 6: chat_mission_ui 실행
 
 ~~~bash
