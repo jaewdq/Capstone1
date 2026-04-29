@@ -5,8 +5,9 @@ goto_point:
     preland_hover_time_sec: 2.0
     preland_xy_tolerance: 0.10
 
-    spawn_world_x: -10.0
-    spawn_world_y: 0.0
+    # 이륙 구역 중앙 (warehouse_v5 기준)
+    spawn_world_x: 2.1
+    spawn_world_y: -1.5
     yaw_align_deg: 90.0
 
     xy_speed_mps: 1.0
@@ -15,9 +16,22 @@ goto_point:
     yaw_speed_deg_s: 15.0
     land_speed_mps: 0.20
 
-    waypoint_names: ["A-01", "A-02", "A-03"]
-    waypoint_world_x: [0.0, 0.0, 0.0]
-    waypoint_world_y: [2.5, -1.5, -5.5]
-    waypoint_z: [-2.0, -2.0, -2.0]
+    # 웨이포인트 (warehouse_v5 랙 위치 기준, 랙 앞 통로)
+    # A-01: 랙( 0.5, -1.7) → 통로 ( 0.5, -0.8)
+    # A-02: 랙(-1.7, -1.7) → 통로 (-1.7, -0.8)
+    # A-03: 랙( 0.5,  0.7) → 뒤쪽 ( 0.5,  1.4)
+    # A-04: 랙(-1.7,  0.7) → 뒤쪽 (-1.7,  1.4)
+    waypoint_names: ["A-01", "A-02", "A-03", "A-04"]
+    waypoint_world_x: [ 0.5, -1.7,  0.5, -1.7]
+    waypoint_world_y: [-0.8, -0.8,  1.4,  1.4]
+    waypoint_z: [-1.8, -1.8, -1.8, -1.8]
 
     target_name: "A-01"
+
+aruco_land:
+  ros__parameters:
+    aruco_marker_id: 0
+    aruco_marker_size_m: 0.3
+    align_xy_tol_m: 0.15
+    align_hold_sec: 1.0
+    descent_speed_mps: 0.15

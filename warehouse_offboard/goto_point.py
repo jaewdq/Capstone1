@@ -72,9 +72,24 @@ class GotoPoint(Node):
             self.mission_target_callback,
             10
         )
+        _latching_qos = rclpy.qos.QoSProfile(
+            reliability=rclpy.qos.ReliabilityPolicy.RELIABLE,
+            durability=rclpy.qos.DurabilityPolicy.TRANSIENT_LOCAL,
+            history=rclpy.qos.HistoryPolicy.KEEP_LAST,
+            depth=1
+        )
         self.mission_status_publisher = self.create_publisher(
             String,
             '/mission_status_text',
+            _latching_qos
+        )
+
+        # ★ aruco_land 상태 구독 (정밀 착륙 완료 감지)
+        self.aruco_land_done = False
+        self.create_subscription(
+            String,
+            '/aruco_land/status',
+            self.aruco_land_status_callback,
             10
         )
 
@@ -183,6 +198,12 @@ class GotoPoint(Node):
         msg.data = text
         self.mission_status_publisher.publish(msg)
 
+    # ★ aruco_land 상태 콜백
+    def aruco_land_status_callback(self, msg: String):
+        if msg.data == 'ARUCO_LAND_DONE':
+            self.get_logger().info('aruco_land 정밀 착륙 완료 신호 수신')
+            self.aruco_land_done = True
+
     def mission_target_callback(self, msg: String):
         target_name = msg.data.strip().upper()
 
@@ -251,6 +272,7 @@ class GotoPoint(Node):
         self.preland_hover_counter = 0
         self.land_command_sent = False
         self.disarm_sent = False
+        self.aruco_land_done = False  # ★ 새 미션 시작 시 초기화
 
         self.get_logger().info(
             f'New mission selected: {self.target_name} -> world {self.target_world}'
@@ -421,7 +443,7 @@ class GotoPoint(Node):
                 self.start_new_mission(selected)
             return
 
-        if self.phase not in ['WAIT_DISARM']:
+        if self.phase not in ['WAIT_DISARM', 'WAIT_ARUCO_LAND']:
             self.publish_offboard_control_mode()
 
             target_pose = self.get_phase_target()
@@ -451,7 +473,7 @@ class GotoPoint(Node):
             self.get_logger().info(f'Phase changed -> {self.phase}')
             self.prev_phase = self.phase
 
-        if self.phase not in ['WAIT_DISARM']:
+        if self.phase not in ['WAIT_DISARM', 'WAIT_ARUCO_LAND']:
             target_pose = self.get_phase_target()
             if target_pose is not None:
                 distance = self.compute_distance(
@@ -509,13 +531,32 @@ class GotoPoint(Node):
                 )
                 if self.preland_hover_counter >= self.preland_hover_limit:
                     self.preland_hover_counter = 0
-                    self.phase = 'LAND_CMD'
+                    # ★ aruco_land 에게 정밀 착륙 시작 신호 발행
+                    self.get_logger().info('PRELAND_SETTLE 완료 → aruco_land 에 제어 넘김')
+                    self.publish_mission_status('PRELAND_SETTLE')
+                    self.phase = 'WAIT_ARUCO_LAND'
             else:
                 self.preland_hover_counter = 0
 
+        # ★ 신규 페이즈: aruco_land 가 착륙 완료할 때까지 hover 유지
+        elif self.phase == 'WAIT_ARUCO_LAND':
+            if self.aruco_land_done:
+                # aruco_land 가 NAV_LAND + disarm 까지 처리했으므로
+                # goto_point 는 FINISHED 로 바로 전환
+                self.get_logger().info('aruco_land 완료 확인 → FINISHED')
+                self.phase = 'FINISHED'
+                self.last_finished_target = self.target_name
+                self.publish_mission_status(f'MISSION_FINISHED:{self.last_finished_target}')
+            else:
+                # hover setpoint 계속 유지 (aruco_land 가 offboard 제어 중)
+                # goto_point 는 OCM + setpoint 발행을 멈추지 않아야
+                # PX4 offboard timeout 이 발생하지 않음
+                pass
+
         elif self.phase == 'LAND_CMD':
+            # ★ aruco_land 가 없는 경우 대비 폴백 (aruco_land 미실행 시)
             if not self.land_command_sent:
-                self.get_logger().info('Sending NAV_LAND command')
+                self.get_logger().info('Sending NAV_LAND command (fallback)')
                 self.publish_vehicle_command(VehicleCommand.VEHICLE_CMD_NAV_LAND)
                 self.land_command_sent = True
                 self.phase = 'WAIT_DISARM'

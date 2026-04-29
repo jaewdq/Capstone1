@@ -28,6 +28,8 @@ setup(
         'console_scripts': [
             'goto_point = warehouse_offboard.goto_point:main',
             'chat_mission_ui = warehouse_offboard.chat_mission_ui:main',
+            'gz_camera_bridge = warehouse_offboard.gz_camera_bridge:main',
+            'aruco_land       = warehouse_offboard.aruco_land:main',
         ],
     },
 )
