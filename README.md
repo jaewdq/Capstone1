@@ -7,16 +7,16 @@ ROS 2 Humble, Gazebo Harmonic, PX4 SITL 환경에서 창고 월드 기반 드론
 
 ## Dependencies
 
-* __[Python](https://www.python.org/)__ 3.10 or compatible
+* __[Python](https://www.python.org/)__ 3.10.12
 * __[ROS 2 Humble](https://docs.ros.org/en/humble/)__ with __[cv_bridge](http://wiki.ros.org/cv_bridge)__, __[sensor_msgs](http://wiki.ros.org/sensor_msgs)__, __[std_msgs](http://wiki.ros.org/std_msgs)__, __[rclpy](http://wiki.ros.org/rclpy)__
 * __[Gazebo Harmonic](https://gazebosim.org/)__ 8.11.0 with __[ros_gz_bridge](https://github.com/gazebosim/ros_gz)__
 * __[PX4-Autopilot](https://github.com/PX4/PX4-Autopilot)__ with __[px4_msgs](https://github.com/PX4/px4_msgs)__
 * __[Micro-XRCE-DDS-Agent](https://github.com/eProsima/Micro-XRCE-DDS-Agent)__ (ROS 2 ↔ PX4 bridge)
 * __[QGroundControl](https://qgroundcontrol.com/)__ (지상 관제 소프트웨어)
-* __[NumPy](https://numpy.org/)__ < 2.0 (OpenCV 호환성)
-* __[OpenCV-Python](https://opencv.org/)__ with __cv2.aruco__ (Aruco 마커 인식)
-* __[OpenAI Python SDK](https://github.com/openai/openai-python)__ (자연어 명령 처리)
-* __[Pygame](https://www.pygame.org/)__ (미션 UI)
+* __[NumPy](https://numpy.org/)__ 1.26.4 (2.0 미만 필수 — OpenCV 호환성)
+* __[OpenCV-Python](https://opencv.org/)__ 4.5.4 with __cv2.aruco__ (Aruco 마커 인식)
+* __[OpenAI Python SDK](https://github.com/openai/openai-python)__ 2.32.0 (자연어 명령 처리)
+* __[Pygame](https://www.pygame.org/)__ 2.6.1 (미션 UI)
 
 ---
 
