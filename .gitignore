@@ -16,3 +16,7 @@ __pycache__/
 
 .env
 .env.*
+cleanup_archive/
+setup.py.bak
+cleanup_archive/
+setup.py.bak

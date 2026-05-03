@@ -1,21 +1,21 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <sdf version="1.9">
   <world name="default">
 
-    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
-    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
-    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics" />
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands" />
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster" />
     <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
       <render_engine>ogre2</render_engine>
     </plugin>
-    <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu"/>
-    <plugin filename="gz-sim-air-pressure-system" name="gz::sim::systems::AirPressure"/>
-    <plugin filename="gz-sim-navsat-system" name="gz::sim::systems::NavSat"/>
-    <plugin filename="gz-sim-magnetometer-system" name="gz::sim::systems::Magnetometer"/>
+    <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu" />
+    <plugin filename="gz-sim-air-pressure-system" name="gz::sim::systems::AirPressure" />
+    <plugin filename="gz-sim-navsat-system" name="gz::sim::systems::NavSat" />
+    <plugin filename="gz-sim-magnetometer-system" name="gz::sim::systems::Magnetometer" />
 
     <gravity>0 0 -9.8</gravity>
     <magnetic_field>6e-06 2.3e-05 -4.2e-05</magnetic_field>
-    <atmosphere type="adiabatic"/>
+    <atmosphere type="adiabatic" />
 
     <physics type="ode">
       <max_step_size>0.004</max_step_size>
@@ -27,7 +27,7 @@
       <grid>true</grid>
       <ambient>0.6 0.6 0.6 1</ambient>
       <background>0.8 0.8 0.8 1</background>
-      <shadows>true</shadows>
+      <shadows>false</shadows>
     </scene>
 
     <light name="sun" type="directional">
@@ -38,8 +38,10 @@
       <diffuse>0.904 0.904 0.904 1</diffuse>
       <specular>0.271 0.271 0.271 1</specular>
       <attenuation>
-        <range>2000</range><linear>0</linear>
-        <constant>1</constant><quadratic>0</quadratic>
+        <range>2000</range>
+        <linear>0</linear>
+        <constant>1</constant>
+        <quadratic>0</quadratic>
       </attenuation>
     </light>
 
@@ -51,38 +53,15 @@
       <elevation>0</elevation>
     </spherical_coordinates>
 
-    <!--
-      =====================================================================
-      좌표계 기준:
-        전체 공간: 5.32m(X) x 4.65m(Y)
-        원점(0,0)을 공간 중심으로 설정
-        X: -2.66 ~ +2.66
-        Y: -2.325 ~ +2.325
+    
 
-      랙 배치 (스케치 기준):
-        A-01: 좌상단  → (-1.7,  1.2)
-        A-02: 좌하단  → (-1.7, -1.2)
-        B-01: 중상단  → ( 0.5,  1.2)
-        B-02: 중하단  → ( 0.5, -1.2)
-
-      이륙 구역:    우하단 → (2.0, -1.5)  0.9x0.75m 녹색 패드
-      임시적재구역: 우상단 → (2.0,  1.5)  0.9x0.75m 주황색 패드
-
-      랙 구조:
-        크기: 1.2(X) x 0.6(Y) x 1.8(H) m
-        4단 선반: z = 0.4 / 0.8 / 1.2 / 1.6 m
-        기둥: X=±0.575, Y=±0.275
-      =====================================================================
-    -->
-
-    <!-- Ground plane -->
     <model name="ground_plane">
       <static>true</static>
       <pose>0 0 0 0 0 0</pose>
       <link name="link">
         <collision name="collision">
           <geometry><plane><normal>0 0 1</normal><size>500 500</size></plane></geometry>
-          <surface><friction><ode/></friction><bounce/><contact/></surface>
+          <surface><friction><ode /></friction><bounce /><contact /></surface>
         </collision>
         <visual name="visual">
           <geometry><plane><normal>0 0 1</normal><size>500 500</size></plane></geometry>
@@ -95,174 +74,1440 @@
       </link>
     </model>
 
-    <!-- 세트장 바닥 테두리 벽 (얇은 벽으로 공간 표시) -->
-    <!-- 앞벽 (Y = -2.325) -->
     <model name="wall_front"><static>true</static><pose>0 -2.325 0.05 0 0 0</pose>
       <link name="link">
         <visual name="v"><geometry><box><size>5.32 0.05 0.1</size></box></geometry>
-          <material><ambient>0.5 0.5 0.5 1</ambient><diffuse>0.5 0.5 0.5 1</diffuse></material></visual>
+          <material>
+            <ambient>0.5 0.5 0.5 1</ambient>
+            <diffuse>0.5 0.5 0.5 1</diffuse>
+          </material></visual>
         <collision name="c"><geometry><box><size>5.32 0.05 0.1</size></box></geometry></collision>
       </link>
     </model>
-    <!-- 뒷벽 (Y = +2.325) -->
+
     <model name="wall_back"><static>true</static><pose>0 2.325 0.05 0 0 0</pose>
       <link name="link">
         <visual name="v"><geometry><box><size>5.32 0.05 0.1</size></box></geometry>
-          <material><ambient>0.5 0.5 0.5 1</ambient><diffuse>0.5 0.5 0.5 1</diffuse></material></visual>
+          <material>
+            <ambient>0.5 0.5 0.5 1</ambient>
+            <diffuse>0.5 0.5 0.5 1</diffuse>
+          </material></visual>
         <collision name="c"><geometry><box><size>5.32 0.05 0.1</size></box></geometry></collision>
       </link>
     </model>
-    <!-- 왼벽 (X = -2.66) -->
+
     <model name="wall_left"><static>true</static><pose>-2.66 0 0.05 0 0 0</pose>
       <link name="link">
         <visual name="v"><geometry><box><size>0.05 4.65 0.1</size></box></geometry>
-          <material><ambient>0.5 0.5 0.5 1</ambient><diffuse>0.5 0.5 0.5 1</diffuse></material></visual>
+          <material>
+            <ambient>0.5 0.5 0.5 1</ambient>
+            <diffuse>0.5 0.5 0.5 1</diffuse>
+          </material></visual>
         <collision name="c"><geometry><box><size>0.05 4.65 0.1</size></box></geometry></collision>
       </link>
     </model>
-    <!-- 오른벽 (X = +2.66) -->
+
     <model name="wall_right"><static>true</static><pose>2.66 0 0.05 0 0 0</pose>
       <link name="link">
         <visual name="v"><geometry><box><size>0.05 4.65 0.1</size></box></geometry>
-          <material><ambient>0.5 0.5 0.5 1</ambient><diffuse>0.5 0.5 0.5 1</diffuse></material></visual>
+          <material>
+            <ambient>0.5 0.5 0.5 1</ambient>
+            <diffuse>0.5 0.5 0.5 1</diffuse>
+          </material></visual>
         <collision name="c"><geometry><box><size>0.05 4.65 0.1</size></box></geometry></collision>
       </link>
     </model>
 
-    <!-- ===================================================== -->
-    <!-- RACK A-01  좌상단 (-1.7, 1.2)  →  노란색 박스        -->
-    <!-- ===================================================== -->
-    <model name="rack_A01"><static>true</static><pose>-1.7 0.7 0 0 0 0</pose>
+    
+    
+    <model name="rack_A04">
+      <static>true</static>
+      <pose>-1.7 0.7 0 0 0 0</pose>
       <link name="link">
-        <!-- 기둥 4개 -->
-        <visual name="post_fl"><pose>-0.575 -0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry><material><ambient>0.15 0.15 0.15 1</ambient><diffuse>0.15 0.15 0.15 1</diffuse></material></visual>
+        
+        <visual name="post_fl"><pose>-0.575 -0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry>
+          <material>
+            <ambient>0.15 0.15 0.15 1</ambient>
+            <diffuse>0.15 0.15 0.15 1</diffuse>
+          </material></visual>
         <collision name="post_fl"><pose>-0.575 -0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry></collision>
-        <visual name="post_fr"><pose> 0.575 -0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry><material><ambient>0.15 0.15 0.15 1</ambient><diffuse>0.15 0.15 0.15 1</diffuse></material></visual>
-        <collision name="post_fr"><pose> 0.575 -0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry></collision>
-        <visual name="post_bl"><pose>-0.575  0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry><material><ambient>0.15 0.15 0.15 1</ambient><diffuse>0.15 0.15 0.15 1</diffuse></material></visual>
-        <collision name="post_bl"><pose>-0.575  0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry></collision>
-        <visual name="post_br"><pose> 0.575  0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry><material><ambient>0.15 0.15 0.15 1</ambient><diffuse>0.15 0.15 0.15 1</diffuse></material></visual>
-        <collision name="post_br"><pose> 0.575  0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry></collision>
-        <!-- 선반 4단 -->
-        <visual name="shelf_1"><pose>0 0 0.4 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry><material><ambient>0.76 0.60 0.36 1</ambient><diffuse>0.76 0.60 0.36 1</diffuse></material></visual>
+
+        <visual name="post_fr"><pose>0.575 -0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry>
+          <material>
+            <ambient>0.15 0.15 0.15 1</ambient>
+            <diffuse>0.15 0.15 0.15 1</diffuse>
+          </material></visual>
+        <collision name="post_fr"><pose>0.575 -0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry></collision>
+
+        <visual name="post_bl"><pose>-0.575 0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry>
+          <material>
+            <ambient>0.15 0.15 0.15 1</ambient>
+            <diffuse>0.15 0.15 0.15 1</diffuse>
+          </material></visual>
+        <collision name="post_bl"><pose>-0.575 0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry></collision>
+
+        <visual name="post_br"><pose>0.575 0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry>
+          <material>
+            <ambient>0.15 0.15 0.15 1</ambient>
+            <diffuse>0.15 0.15 0.15 1</diffuse>
+          </material></visual>
+        <collision name="post_br"><pose>0.575 0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry></collision>
+
+        
+        <visual name="shelf_1"><pose>0 0 0.4 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry>
+          <material>
+            <ambient>0.76 0.6 0.36 1</ambient>
+            <diffuse>0.76 0.6 0.36 1</diffuse>
+          </material></visual>
         <collision name="shelf_1"><pose>0 0 0.4 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry></collision>
-        <visual name="shelf_2"><pose>0 0 0.8 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry><material><ambient>0.76 0.60 0.36 1</ambient><diffuse>0.76 0.60 0.36 1</diffuse></material></visual>
+
+        <visual name="shelf_2"><pose>0 0 0.8 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry>
+          <material>
+            <ambient>0.76 0.6 0.36 1</ambient>
+            <diffuse>0.76 0.6 0.36 1</diffuse>
+          </material></visual>
         <collision name="shelf_2"><pose>0 0 0.8 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry></collision>
-        <visual name="shelf_3"><pose>0 0 1.2 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry><material><ambient>0.76 0.60 0.36 1</ambient><diffuse>0.76 0.60 0.36 1</diffuse></material></visual>
+
+        <visual name="shelf_3"><pose>0 0 1.2 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry>
+          <material>
+            <ambient>0.76 0.6 0.36 1</ambient>
+            <diffuse>0.76 0.6 0.36 1</diffuse>
+          </material></visual>
         <collision name="shelf_3"><pose>0 0 1.2 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry></collision>
-        <visual name="shelf_4"><pose>0 0 1.6 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry><material><ambient>0.76 0.60 0.36 1</ambient><diffuse>0.76 0.60 0.36 1</diffuse></material></visual>
+
+        <visual name="shelf_4"><pose>0 0 1.6 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry>
+          <material>
+            <ambient>0.76 0.6 0.36 1</ambient>
+            <diffuse>0.76 0.6 0.36 1</diffuse>
+          </material></visual>
         <collision name="shelf_4"><pose>0 0 1.6 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry></collision>
       </link>
     </model>
-    <!-- A-01 노란색 박스 6개 (4단 x 좌/우, 상위 3단에 배치) -->
-    <model name="A01_s2_l"><static>true</static><pose>-2.1 0.7 0.87 0 0 0</pose><link name="link"><visual name="v"><geometry><box><size>0.3 0.25 0.15</size></box></geometry><material><ambient>0.95 0.85 0.1 1</ambient><diffuse>0.95 0.85 0.1 1</diffuse></material></visual><collision name="c"><geometry><box><size>0.3 0.25 0.15</size></box></geometry></collision></link></model>
-    <model name="A01_s2_r"><static>true</static><pose>-1.3 0.7 0.87 0 0 0</pose><link name="link"><visual name="v"><geometry><box><size>0.3 0.25 0.15</size></box></geometry><material><ambient>0.95 0.85 0.1 1</ambient><diffuse>0.95 0.85 0.1 1</diffuse></material></visual><collision name="c"><geometry><box><size>0.3 0.25 0.15</size></box></geometry></collision></link></model>
-    <model name="A01_s3_l"><static>true</static><pose>-2.1 0.7 1.27 0 0 0</pose><link name="link"><visual name="v"><geometry><box><size>0.3 0.25 0.15</size></box></geometry><material><ambient>0.95 0.85 0.1 1</ambient><diffuse>0.95 0.85 0.1 1</diffuse></material></visual><collision name="c"><geometry><box><size>0.3 0.25 0.15</size></box></geometry></collision></link></model>
-    <model name="A01_s3_r"><static>true</static><pose>-1.3 0.7 1.27 0 0 0</pose><link name="link"><visual name="v"><geometry><box><size>0.3 0.25 0.15</size></box></geometry><material><ambient>0.95 0.85 0.1 1</ambient><diffuse>0.95 0.85 0.1 1</diffuse></material></visual><collision name="c"><geometry><box><size>0.3 0.25 0.15</size></box></geometry></collision></link></model>
-    <model name="A01_s4_l"><static>true</static><pose>-2.1 0.7 1.67 0 0 0</pose><link name="link"><visual name="v"><geometry><box><size>0.3 0.25 0.15</size></box></geometry><material><ambient>0.95 0.85 0.1 1</ambient><diffuse>0.95 0.85 0.1 1</diffuse></material></visual><collision name="c"><geometry><box><size>0.3 0.25 0.15</size></box></geometry></collision></link></model>
-    <model name="A01_s4_r"><static>true</static><pose>-1.3 0.7 1.67 0 0 0</pose><link name="link"><visual name="v"><geometry><box><size>0.3 0.25 0.15</size></box></geometry><material><ambient>0.95 0.85 0.1 1</ambient><diffuse>0.95 0.85 0.1 1</diffuse></material></visual><collision name="c"><geometry><box><size>0.3 0.25 0.15</size></box></geometry></collision></link></model>
 
-    <!-- ===================================================== -->
-    <!-- RACK A-02  좌하단 (-1.7, -1.2)  →  노란색 박스       -->
-    <!-- ===================================================== -->
-    <model name="rack_A02"><static>true</static><pose>-1.7 -1.7 0 0 0 0</pose>
+    
+    <model name="rack_A03">
+      <static>true</static>
+      <pose>0.5 0.7 0 0 0 0</pose>
       <link name="link">
-        <visual name="post_fl"><pose>-0.575 -0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry><material><ambient>0.15 0.15 0.15 1</ambient><diffuse>0.15 0.15 0.15 1</diffuse></material></visual>
+        
+        <visual name="post_fl"><pose>-0.575 -0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry>
+          <material>
+            <ambient>0.15 0.15 0.15 1</ambient>
+            <diffuse>0.15 0.15 0.15 1</diffuse>
+          </material></visual>
         <collision name="post_fl"><pose>-0.575 -0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry></collision>
-        <visual name="post_fr"><pose> 0.575 -0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry><material><ambient>0.15 0.15 0.15 1</ambient><diffuse>0.15 0.15 0.15 1</diffuse></material></visual>
-        <collision name="post_fr"><pose> 0.575 -0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry></collision>
-        <visual name="post_bl"><pose>-0.575  0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry><material><ambient>0.15 0.15 0.15 1</ambient><diffuse>0.15 0.15 0.15 1</diffuse></material></visual>
-        <collision name="post_bl"><pose>-0.575  0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry></collision>
-        <visual name="post_br"><pose> 0.575  0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry><material><ambient>0.15 0.15 0.15 1</ambient><diffuse>0.15 0.15 0.15 1</diffuse></material></visual>
-        <collision name="post_br"><pose> 0.575  0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry></collision>
-        <visual name="shelf_1"><pose>0 0 0.4 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry><material><ambient>0.76 0.60 0.36 1</ambient><diffuse>0.76 0.60 0.36 1</diffuse></material></visual>
+
+        <visual name="post_fr"><pose>0.575 -0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry>
+          <material>
+            <ambient>0.15 0.15 0.15 1</ambient>
+            <diffuse>0.15 0.15 0.15 1</diffuse>
+          </material></visual>
+        <collision name="post_fr"><pose>0.575 -0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry></collision>
+
+        <visual name="post_bl"><pose>-0.575 0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry>
+          <material>
+            <ambient>0.15 0.15 0.15 1</ambient>
+            <diffuse>0.15 0.15 0.15 1</diffuse>
+          </material></visual>
+        <collision name="post_bl"><pose>-0.575 0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry></collision>
+
+        <visual name="post_br"><pose>0.575 0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry>
+          <material>
+            <ambient>0.15 0.15 0.15 1</ambient>
+            <diffuse>0.15 0.15 0.15 1</diffuse>
+          </material></visual>
+        <collision name="post_br"><pose>0.575 0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry></collision>
+
+        
+        <visual name="shelf_1"><pose>0 0 0.4 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry>
+          <material>
+            <ambient>0.76 0.6 0.36 1</ambient>
+            <diffuse>0.76 0.6 0.36 1</diffuse>
+          </material></visual>
         <collision name="shelf_1"><pose>0 0 0.4 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry></collision>
-        <visual name="shelf_2"><pose>0 0 0.8 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry><material><ambient>0.76 0.60 0.36 1</ambient><diffuse>0.76 0.60 0.36 1</diffuse></material></visual>
+
+        <visual name="shelf_2"><pose>0 0 0.8 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry>
+          <material>
+            <ambient>0.76 0.6 0.36 1</ambient>
+            <diffuse>0.76 0.6 0.36 1</diffuse>
+          </material></visual>
         <collision name="shelf_2"><pose>0 0 0.8 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry></collision>
-        <visual name="shelf_3"><pose>0 0 1.2 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry><material><ambient>0.76 0.60 0.36 1</ambient><diffuse>0.76 0.60 0.36 1</diffuse></material></visual>
+
+        <visual name="shelf_3"><pose>0 0 1.2 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry>
+          <material>
+            <ambient>0.76 0.6 0.36 1</ambient>
+            <diffuse>0.76 0.6 0.36 1</diffuse>
+          </material></visual>
         <collision name="shelf_3"><pose>0 0 1.2 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry></collision>
-        <visual name="shelf_4"><pose>0 0 1.6 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry><material><ambient>0.76 0.60 0.36 1</ambient><diffuse>0.76 0.60 0.36 1</diffuse></material></visual>
+
+        <visual name="shelf_4"><pose>0 0 1.6 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry>
+          <material>
+            <ambient>0.76 0.6 0.36 1</ambient>
+            <diffuse>0.76 0.6 0.36 1</diffuse>
+          </material></visual>
         <collision name="shelf_4"><pose>0 0 1.6 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry></collision>
       </link>
     </model>
-    <!-- A-02 노란색 박스 6개 -->
-    <model name="A02_s2_l"><static>true</static><pose>-2.1 -1.7 0.87 0 0 0</pose><link name="link"><visual name="v"><geometry><box><size>0.3 0.25 0.15</size></box></geometry><material><ambient>0.95 0.85 0.1 1</ambient><diffuse>0.95 0.85 0.1 1</diffuse></material></visual><collision name="c"><geometry><box><size>0.3 0.25 0.15</size></box></geometry></collision></link></model>
-    <model name="A02_s2_r"><static>true</static><pose>-1.3 -1.7 0.87 0 0 0</pose><link name="link"><visual name="v"><geometry><box><size>0.3 0.25 0.15</size></box></geometry><material><ambient>0.95 0.85 0.1 1</ambient><diffuse>0.95 0.85 0.1 1</diffuse></material></visual><collision name="c"><geometry><box><size>0.3 0.25 0.15</size></box></geometry></collision></link></model>
-    <model name="A02_s3_l"><static>true</static><pose>-2.1 -1.7 1.27 0 0 0</pose><link name="link"><visual name="v"><geometry><box><size>0.3 0.25 0.15</size></box></geometry><material><ambient>0.95 0.85 0.1 1</ambient><diffuse>0.95 0.85 0.1 1</diffuse></material></visual><collision name="c"><geometry><box><size>0.3 0.25 0.15</size></box></geometry></collision></link></model>
-    <model name="A02_s3_r"><static>true</static><pose>-1.3 -1.7 1.27 0 0 0</pose><link name="link"><visual name="v"><geometry><box><size>0.3 0.25 0.15</size></box></geometry><material><ambient>0.95 0.85 0.1 1</ambient><diffuse>0.95 0.85 0.1 1</diffuse></material></visual><collision name="c"><geometry><box><size>0.3 0.25 0.15</size></box></geometry></collision></link></model>
-    <model name="A02_s4_l"><static>true</static><pose>-2.1 -1.7 1.67 0 0 0</pose><link name="link"><visual name="v"><geometry><box><size>0.3 0.25 0.15</size></box></geometry><material><ambient>0.95 0.85 0.1 1</ambient><diffuse>0.95 0.85 0.1 1</diffuse></material></visual><collision name="c"><geometry><box><size>0.3 0.25 0.15</size></box></geometry></collision></link></model>
-    <model name="A02_s4_r"><static>true</static><pose>-1.3 -1.7 1.67 0 0 0</pose><link name="link"><visual name="v"><geometry><box><size>0.3 0.25 0.15</size></box></geometry><material><ambient>0.95 0.85 0.1 1</ambient><diffuse>0.95 0.85 0.1 1</diffuse></material></visual><collision name="c"><geometry><box><size>0.3 0.25 0.15</size></box></geometry></collision></link></model>
 
-    <!-- ===================================================== -->
-    <!-- RACK B-01  중상단 (0.5, 1.2)  →  파란색 박스         -->
-    <!-- ===================================================== -->
-    <model name="rack_B01"><static>true</static><pose>0.5 0.7 0 0 0 0</pose>
+    
+    <model name="rack_A02">
+      <static>true</static>
+      <pose>-1.7 -1.7 0 0 0 0</pose>
       <link name="link">
-        <visual name="post_fl"><pose>-0.575 -0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry><material><ambient>0.15 0.15 0.15 1</ambient><diffuse>0.15 0.15 0.15 1</diffuse></material></visual>
+        
+        <visual name="post_fl"><pose>-0.575 -0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry>
+          <material>
+            <ambient>0.15 0.15 0.15 1</ambient>
+            <diffuse>0.15 0.15 0.15 1</diffuse>
+          </material></visual>
         <collision name="post_fl"><pose>-0.575 -0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry></collision>
-        <visual name="post_fr"><pose> 0.575 -0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry><material><ambient>0.15 0.15 0.15 1</ambient><diffuse>0.15 0.15 0.15 1</diffuse></material></visual>
-        <collision name="post_fr"><pose> 0.575 -0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry></collision>
-        <visual name="post_bl"><pose>-0.575  0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry><material><ambient>0.15 0.15 0.15 1</ambient><diffuse>0.15 0.15 0.15 1</diffuse></material></visual>
-        <collision name="post_bl"><pose>-0.575  0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry></collision>
-        <visual name="post_br"><pose> 0.575  0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry><material><ambient>0.15 0.15 0.15 1</ambient><diffuse>0.15 0.15 0.15 1</diffuse></material></visual>
-        <collision name="post_br"><pose> 0.575  0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry></collision>
-        <visual name="shelf_1"><pose>0 0 0.4 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry><material><ambient>0.76 0.60 0.36 1</ambient><diffuse>0.76 0.60 0.36 1</diffuse></material></visual>
+
+        <visual name="post_fr"><pose>0.575 -0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry>
+          <material>
+            <ambient>0.15 0.15 0.15 1</ambient>
+            <diffuse>0.15 0.15 0.15 1</diffuse>
+          </material></visual>
+        <collision name="post_fr"><pose>0.575 -0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry></collision>
+
+        <visual name="post_bl"><pose>-0.575 0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry>
+          <material>
+            <ambient>0.15 0.15 0.15 1</ambient>
+            <diffuse>0.15 0.15 0.15 1</diffuse>
+          </material></visual>
+        <collision name="post_bl"><pose>-0.575 0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry></collision>
+
+        <visual name="post_br"><pose>0.575 0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry>
+          <material>
+            <ambient>0.15 0.15 0.15 1</ambient>
+            <diffuse>0.15 0.15 0.15 1</diffuse>
+          </material></visual>
+        <collision name="post_br"><pose>0.575 0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry></collision>
+
+        
+        <visual name="shelf_1"><pose>0 0 0.4 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry>
+          <material>
+            <ambient>0.76 0.6 0.36 1</ambient>
+            <diffuse>0.76 0.6 0.36 1</diffuse>
+          </material></visual>
         <collision name="shelf_1"><pose>0 0 0.4 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry></collision>
-        <visual name="shelf_2"><pose>0 0 0.8 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry><material><ambient>0.76 0.60 0.36 1</ambient><diffuse>0.76 0.60 0.36 1</diffuse></material></visual>
+
+        <visual name="shelf_2"><pose>0 0 0.8 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry>
+          <material>
+            <ambient>0.76 0.6 0.36 1</ambient>
+            <diffuse>0.76 0.6 0.36 1</diffuse>
+          </material></visual>
         <collision name="shelf_2"><pose>0 0 0.8 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry></collision>
-        <visual name="shelf_3"><pose>0 0 1.2 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry><material><ambient>0.76 0.60 0.36 1</ambient><diffuse>0.76 0.60 0.36 1</diffuse></material></visual>
+
+        <visual name="shelf_3"><pose>0 0 1.2 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry>
+          <material>
+            <ambient>0.76 0.6 0.36 1</ambient>
+            <diffuse>0.76 0.6 0.36 1</diffuse>
+          </material></visual>
         <collision name="shelf_3"><pose>0 0 1.2 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry></collision>
-        <visual name="shelf_4"><pose>0 0 1.6 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry><material><ambient>0.76 0.60 0.36 1</ambient><diffuse>0.76 0.60 0.36 1</diffuse></material></visual>
+
+        <visual name="shelf_4"><pose>0 0 1.6 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry>
+          <material>
+            <ambient>0.76 0.6 0.36 1</ambient>
+            <diffuse>0.76 0.6 0.36 1</diffuse>
+          </material></visual>
         <collision name="shelf_4"><pose>0 0 1.6 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry></collision>
       </link>
     </model>
-    <!-- B-01 파란색 박스 6개 -->
-    <model name="B01_s2_l"><static>true</static><pose>0.1 0.7 0.87 0 0 0</pose><link name="link"><visual name="v"><geometry><box><size>0.3 0.25 0.15</size></box></geometry><material><ambient>0.2 0.4 0.95 1</ambient><diffuse>0.2 0.4 0.95 1</diffuse></material></visual><collision name="c"><geometry><box><size>0.3 0.25 0.15</size></box></geometry></collision></link></model>
-    <model name="B01_s2_r"><static>true</static><pose>0.9 0.7 0.87 0 0 0</pose><link name="link"><visual name="v"><geometry><box><size>0.3 0.25 0.15</size></box></geometry><material><ambient>0.2 0.4 0.95 1</ambient><diffuse>0.2 0.4 0.95 1</diffuse></material></visual><collision name="c"><geometry><box><size>0.3 0.25 0.15</size></box></geometry></collision></link></model>
-    <model name="B01_s3_l"><static>true</static><pose>0.1 0.7 1.27 0 0 0</pose><link name="link"><visual name="v"><geometry><box><size>0.3 0.25 0.15</size></box></geometry><material><ambient>0.2 0.4 0.95 1</ambient><diffuse>0.2 0.4 0.95 1</diffuse></material></visual><collision name="c"><geometry><box><size>0.3 0.25 0.15</size></box></geometry></collision></link></model>
-    <model name="B01_s3_r"><static>true</static><pose>0.9 0.7 1.27 0 0 0</pose><link name="link"><visual name="v"><geometry><box><size>0.3 0.25 0.15</size></box></geometry><material><ambient>0.2 0.4 0.95 1</ambient><diffuse>0.2 0.4 0.95 1</diffuse></material></visual><collision name="c"><geometry><box><size>0.3 0.25 0.15</size></box></geometry></collision></link></model>
-    <model name="B01_s4_l"><static>true</static><pose>0.1 0.7 1.67 0 0 0</pose><link name="link"><visual name="v"><geometry><box><size>0.3 0.25 0.15</size></box></geometry><material><ambient>0.2 0.4 0.95 1</ambient><diffuse>0.2 0.4 0.95 1</diffuse></material></visual><collision name="c"><geometry><box><size>0.3 0.25 0.15</size></box></geometry></collision></link></model>
-    <model name="B01_s4_r"><static>true</static><pose>0.9 0.7 1.67 0 0 0</pose><link name="link"><visual name="v"><geometry><box><size>0.3 0.25 0.15</size></box></geometry><material><ambient>0.2 0.4 0.95 1</ambient><diffuse>0.2 0.4 0.95 1</diffuse></material></visual><collision name="c"><geometry><box><size>0.3 0.25 0.15</size></box></geometry></collision></link></model>
 
-    <!-- ===================================================== -->
-    <!-- RACK B-02  중하단 (0.5, -1.2)  →  파란색 박스        -->
-    <!-- ===================================================== -->
-    <model name="rack_B02"><static>true</static><pose>0.5 -1.7 0 0 0 0</pose>
+    
+    <model name="rack_A01">
+      <static>true</static>
+      <pose>0.5 -1.7 0 0 0 0</pose>
       <link name="link">
-        <visual name="post_fl"><pose>-0.575 -0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry><material><ambient>0.15 0.15 0.15 1</ambient><diffuse>0.15 0.15 0.15 1</diffuse></material></visual>
+        
+        <visual name="post_fl"><pose>-0.575 -0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry>
+          <material>
+            <ambient>0.15 0.15 0.15 1</ambient>
+            <diffuse>0.15 0.15 0.15 1</diffuse>
+          </material></visual>
         <collision name="post_fl"><pose>-0.575 -0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry></collision>
-        <visual name="post_fr"><pose> 0.575 -0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry><material><ambient>0.15 0.15 0.15 1</ambient><diffuse>0.15 0.15 0.15 1</diffuse></material></visual>
-        <collision name="post_fr"><pose> 0.575 -0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry></collision>
-        <visual name="post_bl"><pose>-0.575  0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry><material><ambient>0.15 0.15 0.15 1</ambient><diffuse>0.15 0.15 0.15 1</diffuse></material></visual>
-        <collision name="post_bl"><pose>-0.575  0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry></collision>
-        <visual name="post_br"><pose> 0.575  0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry><material><ambient>0.15 0.15 0.15 1</ambient><diffuse>0.15 0.15 0.15 1</diffuse></material></visual>
-        <collision name="post_br"><pose> 0.575  0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry></collision>
-        <visual name="shelf_1"><pose>0 0 0.4 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry><material><ambient>0.76 0.60 0.36 1</ambient><diffuse>0.76 0.60 0.36 1</diffuse></material></visual>
+
+        <visual name="post_fr"><pose>0.575 -0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry>
+          <material>
+            <ambient>0.15 0.15 0.15 1</ambient>
+            <diffuse>0.15 0.15 0.15 1</diffuse>
+          </material></visual>
+        <collision name="post_fr"><pose>0.575 -0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry></collision>
+
+        <visual name="post_bl"><pose>-0.575 0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry>
+          <material>
+            <ambient>0.15 0.15 0.15 1</ambient>
+            <diffuse>0.15 0.15 0.15 1</diffuse>
+          </material></visual>
+        <collision name="post_bl"><pose>-0.575 0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry></collision>
+
+        <visual name="post_br"><pose>0.575 0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry>
+          <material>
+            <ambient>0.15 0.15 0.15 1</ambient>
+            <diffuse>0.15 0.15 0.15 1</diffuse>
+          </material></visual>
+        <collision name="post_br"><pose>0.575 0.275 0.9 0 0 0</pose><geometry><box><size>0.05 0.05 1.8</size></box></geometry></collision>
+
+        
+        <visual name="shelf_1"><pose>0 0 0.4 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry>
+          <material>
+            <ambient>0.76 0.6 0.36 1</ambient>
+            <diffuse>0.76 0.6 0.36 1</diffuse>
+          </material></visual>
         <collision name="shelf_1"><pose>0 0 0.4 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry></collision>
-        <visual name="shelf_2"><pose>0 0 0.8 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry><material><ambient>0.76 0.60 0.36 1</ambient><diffuse>0.76 0.60 0.36 1</diffuse></material></visual>
+
+        <visual name="shelf_2"><pose>0 0 0.8 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry>
+          <material>
+            <ambient>0.76 0.6 0.36 1</ambient>
+            <diffuse>0.76 0.6 0.36 1</diffuse>
+          </material></visual>
         <collision name="shelf_2"><pose>0 0 0.8 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry></collision>
-        <visual name="shelf_3"><pose>0 0 1.2 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry><material><ambient>0.76 0.60 0.36 1</ambient><diffuse>0.76 0.60 0.36 1</diffuse></material></visual>
+
+        <visual name="shelf_3"><pose>0 0 1.2 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry>
+          <material>
+            <ambient>0.76 0.6 0.36 1</ambient>
+            <diffuse>0.76 0.6 0.36 1</diffuse>
+          </material></visual>
         <collision name="shelf_3"><pose>0 0 1.2 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry></collision>
-        <visual name="shelf_4"><pose>0 0 1.6 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry><material><ambient>0.76 0.60 0.36 1</ambient><diffuse>0.76 0.60 0.36 1</diffuse></material></visual>
+
+        <visual name="shelf_4"><pose>0 0 1.6 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry>
+          <material>
+            <ambient>0.76 0.6 0.36 1</ambient>
+            <diffuse>0.76 0.6 0.36 1</diffuse>
+          </material></visual>
         <collision name="shelf_4"><pose>0 0 1.6 0 0 0</pose><geometry><box><size>1.2 0.6 0.04</size></box></geometry></collision>
       </link>
     </model>
-    <!-- B-02 파란색 박스 6개 -->
-    <model name="B02_s2_l"><static>true</static><pose>0.1 -1.7 0.87 0 0 0</pose><link name="link"><visual name="v"><geometry><box><size>0.3 0.25 0.15</size></box></geometry><material><ambient>0.2 0.4 0.95 1</ambient><diffuse>0.2 0.4 0.95 1</diffuse></material></visual><collision name="c"><geometry><box><size>0.3 0.25 0.15</size></box></geometry></collision></link></model>
-    <model name="B02_s2_r"><static>true</static><pose>0.9 -1.7 0.87 0 0 0</pose><link name="link"><visual name="v"><geometry><box><size>0.3 0.25 0.15</size></box></geometry><material><ambient>0.2 0.4 0.95 1</ambient><diffuse>0.2 0.4 0.95 1</diffuse></material></visual><collision name="c"><geometry><box><size>0.3 0.25 0.15</size></box></geometry></collision></link></model>
-    <model name="B02_s3_l"><static>true</static><pose>0.1 -1.7 1.27 0 0 0</pose><link name="link"><visual name="v"><geometry><box><size>0.3 0.25 0.15</size></box></geometry><material><ambient>0.2 0.4 0.95 1</ambient><diffuse>0.2 0.4 0.95 1</diffuse></material></visual><collision name="c"><geometry><box><size>0.3 0.25 0.15</size></box></geometry></collision></link></model>
-    <model name="B02_s3_r"><static>true</static><pose>0.9 -1.7 1.27 0 0 0</pose><link name="link"><visual name="v"><geometry><box><size>0.3 0.25 0.15</size></box></geometry><material><ambient>0.2 0.4 0.95 1</ambient><diffuse>0.2 0.4 0.95 1</diffuse></material></visual><collision name="c"><geometry><box><size>0.3 0.25 0.15</size></box></geometry></collision></link></model>
-    <model name="B02_s4_l"><static>true</static><pose>0.1 -1.7 1.67 0 0 0</pose><link name="link"><visual name="v"><geometry><box><size>0.3 0.25 0.15</size></box></geometry><material><ambient>0.2 0.4 0.95 1</ambient><diffuse>0.2 0.4 0.95 1</diffuse></material></visual><collision name="c"><geometry><box><size>0.3 0.25 0.15</size></box></geometry></collision></link></model>
-    <model name="B02_s4_r"><static>true</static><pose>0.9 -1.7 1.67 0 0 0</pose><link name="link"><visual name="v"><geometry><box><size>0.3 0.25 0.15</size></box></geometry><material><ambient>0.2 0.4 0.95 1</ambient><diffuse>0.2 0.4 0.95 1</diffuse></material></visual><collision name="c"><geometry><box><size>0.3 0.25 0.15</size></box></geometry></collision></link></model>
 
-    <!-- ===================================================== -->
-    <!-- 이륙 구역  우하단 (2.1, -1.5)                        -->
-    <!-- PX4 Vision 휠베이스 286mm, 프로펠러 6인치 고려        -->
-    <!-- 패드 크기: 1.2 x 1.2m (드론 여유 공간 충분히 확보)   -->
-    <!-- 드론 스폰 명령:                                       -->
-    <!--   PX4_GZ_MODEL_POSE="2.1,-1.5,0.3,0,0,0"            -->
-    <!-- ===================================================== -->
-    <model name="takeoff_zone"><static>true</static><pose>2.1 -1.5 0.005 0 0 0</pose>
+
+    
+    <model name="box_A_04_L1">
+      <static>true</static>
+      <pose>-1.700 0.700 0.540 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry><box><size>0.52 0.34 0.24</size></box></geometry>
+          <material>
+            <ambient>0.95 0.85 0.1 1</ambient>
+            <diffuse>0.95 0.85 0.1 1</diffuse>
+          </material>
+        </visual>
+        <collision name="collision">
+          <geometry><box><size>0.52 0.34 0.24</size></box></geometry>
+        </collision>
+      </link>
+    </model>
+
+    <model name="box_A_04_L2">
+      <static>true</static>
+      <pose>-1.700 0.700 0.940 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry><box><size>0.52 0.34 0.24</size></box></geometry>
+          <material>
+            <ambient>0.95 0.85 0.1 1</ambient>
+            <diffuse>0.95 0.85 0.1 1</diffuse>
+          </material>
+        </visual>
+        <collision name="collision">
+          <geometry><box><size>0.52 0.34 0.24</size></box></geometry>
+        </collision>
+      </link>
+    </model>
+
+    <model name="box_A_04_L3">
+      <static>true</static>
+      <pose>-1.700 0.700 1.340 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry><box><size>0.52 0.34 0.24</size></box></geometry>
+          <material>
+            <ambient>0.95 0.85 0.1 1</ambient>
+            <diffuse>0.95 0.85 0.1 1</diffuse>
+          </material>
+        </visual>
+        <collision name="collision">
+          <geometry><box><size>0.52 0.34 0.24</size></box></geometry>
+        </collision>
+      </link>
+    </model>
+
+    <model name="box_A_04_L4">
+      <static>true</static>
+      <pose>-1.700 0.700 1.740 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry><box><size>0.52 0.34 0.24</size></box></geometry>
+          <material>
+            <ambient>0.95 0.85 0.1 1</ambient>
+            <diffuse>0.95 0.85 0.1 1</diffuse>
+          </material>
+        </visual>
+        <collision name="collision">
+          <geometry><box><size>0.52 0.34 0.24</size></box></geometry>
+        </collision>
+      </link>
+    </model>
+
+    <model name="box_A_03_L1">
+      <static>true</static>
+      <pose>0.500 0.700 0.540 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry><box><size>0.52 0.34 0.24</size></box></geometry>
+          <material>
+            <ambient>0.2 0.4 0.95 1</ambient>
+            <diffuse>0.2 0.4 0.95 1</diffuse>
+          </material>
+        </visual>
+        <collision name="collision">
+          <geometry><box><size>0.52 0.34 0.24</size></box></geometry>
+        </collision>
+      </link>
+    </model>
+
+    <model name="box_A_03_L2">
+      <static>true</static>
+      <pose>0.500 0.700 0.940 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry><box><size>0.52 0.34 0.24</size></box></geometry>
+          <material>
+            <ambient>0.2 0.4 0.95 1</ambient>
+            <diffuse>0.2 0.4 0.95 1</diffuse>
+          </material>
+        </visual>
+        <collision name="collision">
+          <geometry><box><size>0.52 0.34 0.24</size></box></geometry>
+        </collision>
+      </link>
+    </model>
+
+    <model name="box_A_03_L3">
+      <static>true</static>
+      <pose>0.500 0.700 1.340 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry><box><size>0.52 0.34 0.24</size></box></geometry>
+          <material>
+            <ambient>0.2 0.4 0.95 1</ambient>
+            <diffuse>0.2 0.4 0.95 1</diffuse>
+          </material>
+        </visual>
+        <collision name="collision">
+          <geometry><box><size>0.52 0.34 0.24</size></box></geometry>
+        </collision>
+      </link>
+    </model>
+
+    <model name="box_A_03_L4">
+      <static>true</static>
+      <pose>0.500 0.700 1.740 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry><box><size>0.52 0.34 0.24</size></box></geometry>
+          <material>
+            <ambient>0.2 0.4 0.95 1</ambient>
+            <diffuse>0.2 0.4 0.95 1</diffuse>
+          </material>
+        </visual>
+        <collision name="collision">
+          <geometry><box><size>0.52 0.34 0.24</size></box></geometry>
+        </collision>
+      </link>
+    </model>
+
+    <model name="box_A_02_L1">
+      <static>true</static>
+      <pose>-1.700 -1.700 0.540 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry><box><size>0.52 0.34 0.24</size></box></geometry>
+          <material>
+            <ambient>0.95 0.85 0.1 1</ambient>
+            <diffuse>0.95 0.85 0.1 1</diffuse>
+          </material>
+        </visual>
+        <collision name="collision">
+          <geometry><box><size>0.52 0.34 0.24</size></box></geometry>
+        </collision>
+      </link>
+    </model>
+
+    <model name="box_A_02_L2">
+      <static>true</static>
+      <pose>-1.700 -1.700 0.940 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry><box><size>0.52 0.34 0.24</size></box></geometry>
+          <material>
+            <ambient>0.95 0.85 0.1 1</ambient>
+            <diffuse>0.95 0.85 0.1 1</diffuse>
+          </material>
+        </visual>
+        <collision name="collision">
+          <geometry><box><size>0.52 0.34 0.24</size></box></geometry>
+        </collision>
+      </link>
+    </model>
+
+    <model name="box_A_02_L3">
+      <static>true</static>
+      <pose>-1.700 -1.700 1.340 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry><box><size>0.52 0.34 0.24</size></box></geometry>
+          <material>
+            <ambient>0.95 0.85 0.1 1</ambient>
+            <diffuse>0.95 0.85 0.1 1</diffuse>
+          </material>
+        </visual>
+        <collision name="collision">
+          <geometry><box><size>0.52 0.34 0.24</size></box></geometry>
+        </collision>
+      </link>
+    </model>
+
+    <model name="box_A_02_L4">
+      <static>true</static>
+      <pose>-1.700 -1.700 1.740 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry><box><size>0.52 0.34 0.24</size></box></geometry>
+          <material>
+            <ambient>0.95 0.85 0.1 1</ambient>
+            <diffuse>0.95 0.85 0.1 1</diffuse>
+          </material>
+        </visual>
+        <collision name="collision">
+          <geometry><box><size>0.52 0.34 0.24</size></box></geometry>
+        </collision>
+      </link>
+    </model>
+
+    <model name="box_A_01_L1">
+      <static>true</static>
+      <pose>0.500 -1.700 0.540 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry><box><size>0.52 0.34 0.24</size></box></geometry>
+          <material>
+            <ambient>0.2 0.4 0.95 1</ambient>
+            <diffuse>0.2 0.4 0.95 1</diffuse>
+          </material>
+        </visual>
+        <collision name="collision">
+          <geometry><box><size>0.52 0.34 0.24</size></box></geometry>
+        </collision>
+      </link>
+    </model>
+
+    <model name="box_A_01_L2">
+      <static>true</static>
+      <pose>0.500 -1.700 0.940 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry><box><size>0.52 0.34 0.24</size></box></geometry>
+          <material>
+            <ambient>0.2 0.4 0.95 1</ambient>
+            <diffuse>0.2 0.4 0.95 1</diffuse>
+          </material>
+        </visual>
+        <collision name="collision">
+          <geometry><box><size>0.52 0.34 0.24</size></box></geometry>
+        </collision>
+      </link>
+    </model>
+
+    <model name="box_A_01_L3">
+      <static>true</static>
+      <pose>0.500 -1.700 1.340 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry><box><size>0.52 0.34 0.24</size></box></geometry>
+          <material>
+            <ambient>0.2 0.4 0.95 1</ambient>
+            <diffuse>0.2 0.4 0.95 1</diffuse>
+          </material>
+        </visual>
+        <collision name="collision">
+          <geometry><box><size>0.52 0.34 0.24</size></box></geometry>
+        </collision>
+      </link>
+    </model>
+
+    <model name="box_A_01_L4">
+      <static>true</static>
+      <pose>0.500 -1.700 1.740 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry><box><size>0.52 0.34 0.24</size></box></geometry>
+          <material>
+            <ambient>0.2 0.4 0.95 1</ambient>
+            <diffuse>0.2 0.4 0.95 1</diffuse>
+          </material>
+        </visual>
+        <collision name="collision">
+          <geometry><box><size>0.52 0.34 0.24</size></box></geometry>
+        </collision>
+      </link>
+    </model>
+
+
+    
+    
+    <model name="inventory_qr_A04_L1">
+      <static>true</static>
+      <pose>-1.70000 0.88500 0.57000 1.57080 0.00000 3.14159</pose>
+      <link name="link">
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.16 0.16</size>
+            </plane>
+          </geometry>
+          
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>file:///home/iasl/capstone_ws/src/warehouse_offboard/worlds/inventory_qr_labels_unique/QR_ONLY_A_04_L1.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="inventory_text_A04_L1">
+      <static>true</static>
+      <pose>-1.70000 1.00600 0.40000 1.57080 0.00000 3.14159</pose>
+      <link name="link">
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.26 0.055</size>
+            </plane>
+          </geometry>
+          
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>file:///home/iasl/capstone_ws/src/warehouse_offboard/worlds/inventory_text_labels_unique/TEXT_ONLY_A_04_L1.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    
+    <model name="inventory_qr_A04_L2">
+      <static>true</static>
+      <pose>-1.70000 0.88500 0.97000 1.57080 0.00000 3.14159</pose>
+      <link name="link">
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.16 0.16</size>
+            </plane>
+          </geometry>
+          
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>file:///home/iasl/capstone_ws/src/warehouse_offboard/worlds/inventory_qr_labels_unique/QR_ONLY_A_04_L2.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="inventory_text_A04_L2">
+      <static>true</static>
+      <pose>-1.70000 1.00600 0.80000 1.57080 0.00000 3.14159</pose>
+      <link name="link">
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.26 0.055</size>
+            </plane>
+          </geometry>
+          
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>file:///home/iasl/capstone_ws/src/warehouse_offboard/worlds/inventory_text_labels_unique/TEXT_ONLY_A_04_L2.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    
+    <model name="inventory_qr_A04_L3">
+      <static>true</static>
+      <pose>-1.70000 0.88500 1.37000 1.57080 0.00000 3.14159</pose>
+      <link name="link">
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.16 0.16</size>
+            </plane>
+          </geometry>
+          
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>file:///home/iasl/capstone_ws/src/warehouse_offboard/worlds/inventory_qr_labels_unique/QR_ONLY_A_04_L3.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="inventory_text_A04_L3">
+      <static>true</static>
+      <pose>-1.70000 1.00600 1.20000 1.57080 0.00000 3.14159</pose>
+      <link name="link">
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.26 0.055</size>
+            </plane>
+          </geometry>
+          
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>file:///home/iasl/capstone_ws/src/warehouse_offboard/worlds/inventory_text_labels_unique/TEXT_ONLY_A_04_L3.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    
+    <model name="inventory_qr_A04_L4">
+      <static>true</static>
+      <pose>-1.70000 0.88500 1.77000 1.57080 0.00000 3.14159</pose>
+      <link name="link">
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.16 0.16</size>
+            </plane>
+          </geometry>
+          
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>file:///home/iasl/capstone_ws/src/warehouse_offboard/worlds/inventory_qr_labels_unique/QR_ONLY_A_04_L4.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="inventory_text_A04_L4">
+      <static>true</static>
+      <pose>-1.70000 1.00600 1.60000 1.57080 0.00000 3.14159</pose>
+      <link name="link">
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.26 0.055</size>
+            </plane>
+          </geometry>
+          
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>file:///home/iasl/capstone_ws/src/warehouse_offboard/worlds/inventory_text_labels_unique/TEXT_ONLY_A_04_L4.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    
+    <model name="inventory_qr_A03_L1">
+      <static>true</static>
+      <pose>0.50000 0.88500 0.57000 1.57080 0.00000 3.14159</pose>
+      <link name="link">
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.16 0.16</size>
+            </plane>
+          </geometry>
+          
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>file:///home/iasl/capstone_ws/src/warehouse_offboard/worlds/inventory_qr_labels_unique/QR_ONLY_A_03_L1.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="inventory_text_A03_L1">
+      <static>true</static>
+      <pose>0.50000 1.00600 0.40000 1.57080 0.00000 3.14159</pose>
+      <link name="link">
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.26 0.055</size>
+            </plane>
+          </geometry>
+          
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>file:///home/iasl/capstone_ws/src/warehouse_offboard/worlds/inventory_text_labels_unique/TEXT_ONLY_A_03_L1.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    
+    <model name="inventory_qr_A03_L2">
+      <static>true</static>
+      <pose>0.50000 0.88500 0.97000 1.57080 0.00000 3.14159</pose>
+      <link name="link">
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.16 0.16</size>
+            </plane>
+          </geometry>
+          
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>file:///home/iasl/capstone_ws/src/warehouse_offboard/worlds/inventory_qr_labels_unique/QR_ONLY_A_03_L2.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="inventory_text_A03_L2">
+      <static>true</static>
+      <pose>0.50000 1.00600 0.80000 1.57080 0.00000 3.14159</pose>
+      <link name="link">
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.26 0.055</size>
+            </plane>
+          </geometry>
+          
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>file:///home/iasl/capstone_ws/src/warehouse_offboard/worlds/inventory_text_labels_unique/TEXT_ONLY_A_03_L2.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    
+    <model name="inventory_qr_A03_L3">
+      <static>true</static>
+      <pose>0.50000 0.88500 1.37000 1.57080 0.00000 3.14159</pose>
+      <link name="link">
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.16 0.16</size>
+            </plane>
+          </geometry>
+          
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>file:///home/iasl/capstone_ws/src/warehouse_offboard/worlds/inventory_qr_labels_unique/QR_ONLY_A_03_L3.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="inventory_text_A03_L3">
+      <static>true</static>
+      <pose>0.50000 1.00600 1.20000 1.57080 0.00000 3.14159</pose>
+      <link name="link">
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.26 0.055</size>
+            </plane>
+          </geometry>
+          
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>file:///home/iasl/capstone_ws/src/warehouse_offboard/worlds/inventory_text_labels_unique/TEXT_ONLY_A_03_L3.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    
+    <model name="inventory_qr_A03_L4">
+      <static>true</static>
+      <pose>0.50000 0.88500 1.77000 1.57080 0.00000 3.14159</pose>
+      <link name="link">
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.16 0.16</size>
+            </plane>
+          </geometry>
+          
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>file:///home/iasl/capstone_ws/src/warehouse_offboard/worlds/inventory_qr_labels_unique/QR_ONLY_A_03_L4.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="inventory_text_A03_L4">
+      <static>true</static>
+      <pose>0.50000 1.00600 1.60000 1.57080 0.00000 3.14159</pose>
+      <link name="link">
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.26 0.055</size>
+            </plane>
+          </geometry>
+          
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>file:///home/iasl/capstone_ws/src/warehouse_offboard/worlds/inventory_text_labels_unique/TEXT_ONLY_A_03_L4.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    
+    <model name="inventory_qr_A02_L1">
+      <static>true</static>
+      <pose>-1.700 -1.515 0.570 -1.57080 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.16 0.16</size>
+            </plane>
+          </geometry>
+          
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>file:///home/iasl/capstone_ws/src/warehouse_offboard/worlds/inventory_qr_labels_unique/QR_ONLY_A_02_L1.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="inventory_text_A02_L1">
+      <static>true</static>
+      <pose>-1.700 -1.394 0.400 -1.57080 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.26 0.055</size>
+            </plane>
+          </geometry>
+          
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>file:///home/iasl/capstone_ws/src/warehouse_offboard/worlds/inventory_text_labels_unique/TEXT_ONLY_A_02_L1.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    
+    <model name="inventory_qr_A02_L2">
+      <static>true</static>
+      <pose>-1.700 -1.515 0.970 -1.57080 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.16 0.16</size>
+            </plane>
+          </geometry>
+          
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>file:///home/iasl/capstone_ws/src/warehouse_offboard/worlds/inventory_qr_labels_unique/QR_ONLY_A_02_L2.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="inventory_text_A02_L2">
+      <static>true</static>
+      <pose>-1.700 -1.394 0.800 -1.57080 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.26 0.055</size>
+            </plane>
+          </geometry>
+          
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>file:///home/iasl/capstone_ws/src/warehouse_offboard/worlds/inventory_text_labels_unique/TEXT_ONLY_A_02_L2.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    
+    <model name="inventory_qr_A02_L3">
+      <static>true</static>
+      <pose>-1.700 -1.515 1.370 -1.57080 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.16 0.16</size>
+            </plane>
+          </geometry>
+          
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>file:///home/iasl/capstone_ws/src/warehouse_offboard/worlds/inventory_qr_labels_unique/QR_ONLY_A_02_L3.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="inventory_text_A02_L3">
+      <static>true</static>
+      <pose>-1.700 -1.394 1.200 -1.57080 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.26 0.055</size>
+            </plane>
+          </geometry>
+          
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>file:///home/iasl/capstone_ws/src/warehouse_offboard/worlds/inventory_text_labels_unique/TEXT_ONLY_A_02_L3.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    
+    <model name="inventory_qr_A02_L4">
+      <static>true</static>
+      <pose>-1.700 -1.515 1.770 -1.57080 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.16 0.16</size>
+            </plane>
+          </geometry>
+          
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>file:///home/iasl/capstone_ws/src/warehouse_offboard/worlds/inventory_qr_labels_unique/QR_ONLY_A_02_L4.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="inventory_text_A02_L4">
+      <static>true</static>
+      <pose>-1.700 -1.394 1.600 -1.57080 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.26 0.055</size>
+            </plane>
+          </geometry>
+          
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>file:///home/iasl/capstone_ws/src/warehouse_offboard/worlds/inventory_text_labels_unique/TEXT_ONLY_A_02_L4.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    
+    <model name="inventory_qr_A01_L1">
+      <static>true</static>
+      <pose>0.500 -1.515 0.570 -1.57080 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.16 0.16</size>
+            </plane>
+          </geometry>
+          
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>file:///home/iasl/capstone_ws/src/warehouse_offboard/worlds/inventory_qr_labels_unique/QR_ONLY_A_01_L1.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="inventory_text_A01_L1">
+      <static>true</static>
+      <pose>0.500 -1.394 0.400 -1.57080 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.26 0.055</size>
+            </plane>
+          </geometry>
+          
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>file:///home/iasl/capstone_ws/src/warehouse_offboard/worlds/inventory_text_labels_unique/TEXT_ONLY_A_01_L1.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    
+    <model name="inventory_qr_A01_L2">
+      <static>true</static>
+      <pose>0.500 -1.515 0.970 -1.57080 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.16 0.16</size>
+            </plane>
+          </geometry>
+          
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>file:///home/iasl/capstone_ws/src/warehouse_offboard/worlds/inventory_qr_labels_unique/QR_ONLY_A_01_L2.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="inventory_text_A01_L2">
+      <static>true</static>
+      <pose>0.500 -1.394 0.800 -1.57080 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.26 0.055</size>
+            </plane>
+          </geometry>
+          
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>file:///home/iasl/capstone_ws/src/warehouse_offboard/worlds/inventory_text_labels_unique/TEXT_ONLY_A_01_L2.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    
+    <model name="inventory_qr_A01_L3">
+      <static>true</static>
+      <pose>0.500 -1.515 1.370 -1.57080 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.16 0.16</size>
+            </plane>
+          </geometry>
+          
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>file:///home/iasl/capstone_ws/src/warehouse_offboard/worlds/inventory_qr_labels_unique/QR_ONLY_A_01_L3.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="inventory_text_A01_L3">
+      <static>true</static>
+      <pose>0.500 -1.394 1.200 -1.57080 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.26 0.055</size>
+            </plane>
+          </geometry>
+          
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>file:///home/iasl/capstone_ws/src/warehouse_offboard/worlds/inventory_text_labels_unique/TEXT_ONLY_A_01_L3.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    
+    <model name="inventory_qr_A01_L4">
+      <static>true</static>
+      <pose>0.500 -1.515 1.770 -1.57080 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.16 0.16</size>
+            </plane>
+          </geometry>
+          
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>file:///home/iasl/capstone_ws/src/warehouse_offboard/worlds/inventory_qr_labels_unique/QR_ONLY_A_01_L4.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="inventory_text_A01_L4">
+      <static>true</static>
+      <pose>0.500 -1.394 1.600 -1.57080 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>0.26 0.055</size>
+            </plane>
+          </geometry>
+          
+          <material>
+            <ambient>1 1 1 1</ambient>
+            <diffuse>1 1 1 1</diffuse>
+            <pbr>
+              <metal>
+                <albedo_map>file:///home/iasl/capstone_ws/src/warehouse_offboard/worlds/inventory_text_labels_unique/TEXT_ONLY_A_01_L4.png</albedo_map>
+              </metal>
+            </pbr>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+
+    
+    <model name="takeoff_zone">
+      <static>true</static>
+      <pose>2.1 -1.5 0.005 0 0 0</pose>
       <link name="link">
         <visual name="v">
           <geometry><box><size>1.2 1.2 0.01</size></box></geometry>
@@ -272,8 +1517,7 @@
       </link>
     </model>
 
-
-    <!-- Aruco Marker ID=0  이착륙 패드 중앙 (2.1, -1.5) -->
+    
     <model name="aruco_marker_0">
       <static>true</static>
       <pose>2.1 -1.5 0.012 0 0 0</pose>
@@ -293,11 +1537,9 @@
       </link>
     </model>
 
-    <!-- ===================================================== -->
-    <!-- 임시 적재 구역  우상단 (2.1, 1.5)  주황색 패드        -->
-    <!-- 크기: 1.2 x 1.2m                                     -->
-    <!-- ===================================================== -->
-    <model name="staging_zone"><static>true</static><pose>2.1 1.5 0.005 0 0 0</pose>
+    <model name="staging_zone">
+      <static>true</static>
+      <pose>2.1 1.5 0.005 0 0 0</pose>
       <link name="link">
         <visual name="v">
           <geometry><box><size>1.2 1.2 0.01</size></box></geometry>

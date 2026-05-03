@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import json
 import math
 from typing import Dict, List, Optional, Tuple
 
@@ -72,6 +73,7 @@ class GotoPoint(Node):
             self.mission_target_callback,
             10
         )
+
         _latching_qos = rclpy.qos.QoSProfile(
             reliability=rclpy.qos.ReliabilityPolicy.RELIABLE,
             durability=rclpy.qos.DurabilityPolicy.TRANSIENT_LOCAL,
@@ -84,7 +86,15 @@ class GotoPoint(Node):
             _latching_qos
         )
 
-        # ★ aruco_land 상태 구독 (정밀 착륙 완료 감지)
+        # inventory result subscriber
+        self.inventory_result_subscriber = self.create_subscription(
+            String,
+            '/inventory_scan_result',
+            self.inventory_result_callback,
+            10
+        )
+
+        # aruco_land 상태 구독
         self.aruco_land_done = False
         self.create_subscription(
             String,
@@ -103,10 +113,18 @@ class GotoPoint(Node):
         self.declare_parameter('spawn_world_y', 0.0)
         self.declare_parameter('yaw_align_deg', 90.0)
 
-        self.declare_parameter('waypoint_names', ['A-01', 'A-02', 'A-03'])
-        self.declare_parameter('waypoint_world_x', [0.0, 0.0, 0.0])
-        self.declare_parameter('waypoint_world_y', [2.5, -1.5, -5.5])
-        self.declare_parameter('waypoint_z', [-2.0, -2.0, -2.0])
+        self.declare_parameter('waypoint_names', ['A-01', 'A-02', 'A-03', 'A-04'])
+        self.declare_parameter('waypoint_world_x', [0.0, 0.0, 0.0, 0.0])
+        self.declare_parameter('waypoint_world_y', [2.5, -1.5, -5.5, -7.5])
+        self.declare_parameter('waypoint_z', [-2.0, -2.0, -2.0, -2.0])
+
+        self.declare_parameter('scan_layer_z', [-0.65, -1.05, -1.45, -1.85])
+        self.declare_parameter('scan_layer_hover_time_sec', 2.0)
+        self.declare_parameter('scan_layer_timeout_sec', 8.0)
+        self.declare_parameter('scan_require_inventory_result', True)
+
+        # WAIT_ARUCO_LAND 타임아웃 (초). 이 시간 안에 ARUCO_LAND_DONE 안 오면 강제로 FINISHED 전환
+        self.declare_parameter('aruco_land_timeout_sec', 30.0)
 
         # YAML 호환성 유지용
         self.declare_parameter('target_name', 'A-01')
@@ -120,8 +138,21 @@ class GotoPoint(Node):
         self.spawn_world_y = float(self.get_parameter('spawn_world_y').value)
         self.yaw_align_deg = float(self.get_parameter('yaw_align_deg').value)
 
-        # YAML 호환성 유지용
         self.default_target_name = str(self.get_parameter('target_name').value)
+
+        self.scan_layer_z = [float(v) for v in list(self.get_parameter('scan_layer_z').value)]
+        if len(self.scan_layer_z) != 4:
+            raise ValueError('scan_layer_z must have exactly 4 values for L1~L4')
+
+        self.scan_layer_hover_time_sec = float(self.get_parameter('scan_layer_hover_time_sec').value)
+        self.scan_layer_timeout_sec = float(self.get_parameter('scan_layer_timeout_sec').value)
+        self.scan_require_inventory_result = bool(self.get_parameter('scan_require_inventory_result').value)
+
+        self.aruco_land_timeout_sec = float(self.get_parameter('aruco_land_timeout_sec').value)
+        self.aruco_land_timeout_limit = max(1, int(self.aruco_land_timeout_sec / 0.1))
+
+        self.scan_layer_hover_limit = max(1, int(self.scan_layer_hover_time_sec / 0.1))
+        self.scan_layer_timeout_limit = max(1, int(self.scan_layer_timeout_sec / 0.1))
 
         waypoint_names = list(self.get_parameter('waypoint_names').value)
         waypoint_world_x = list(self.get_parameter('waypoint_world_x').value)
@@ -184,10 +215,21 @@ class GotoPoint(Node):
         self.land_command_sent = False
         self.disarm_sent = False
 
+        # 4-layer inventory scan state
+        self.scan_index = 0
+        self.scan_hover_counter = 0
+        self.scan_wait_counter = 0
+        self.scan_results: Dict[str, Dict] = {}
+        self.last_inventory_msg: Optional[Dict] = None
+
+        # WAIT_ARUCO_LAND 타임아웃 카운터
+        self.aruco_land_wait_counter = 0
+
         self.timer = self.create_timer(0.1, self.timer_callback)
 
-        self.get_logger().info('goto_point node started')
+        self.get_logger().info('goto_point node started [4-LAYER INVENTORY SCAN MODE]')
         self.get_logger().info('Waiting for valid local position before first mission...')
+        self.get_logger().info(f'scan_layer_z={self.scan_layer_z}')
         self.publish_mission_status('WAITING_FOR_COMMAND')
 
     # ------------------------------------------------------------------
@@ -198,11 +240,43 @@ class GotoPoint(Node):
         msg.data = text
         self.mission_status_publisher.publish(msg)
 
-    # ★ aruco_land 상태 콜백
     def aruco_land_status_callback(self, msg: String):
         if msg.data == 'ARUCO_LAND_DONE':
             self.get_logger().info('aruco_land 정밀 착륙 완료 신호 수신')
             self.aruco_land_done = True
+
+    def inventory_result_callback(self, msg: String):
+        try:
+            data = json.loads(msg.data)
+        except Exception:
+            self.get_logger().warn(f'Invalid inventory result JSON: {msg.data}')
+            return
+
+        self.last_inventory_msg = data
+
+        expected_location = str(data.get('expected_location_from_db') or '').upper()
+        barcode = str(data.get('barcode_detected') or '').upper()
+
+        if not expected_location:
+            return
+
+        # 현재 목표 선반과 관련 없는 결과는 무시
+        if self.target_name is not None and not expected_location.startswith(self.target_name):
+            return
+
+        # 현재 스캔 중인 층과 맞는 결과만 저장
+        expected_layer = self.current_scan_location()
+        if expected_layer is not None and expected_location == expected_layer:
+            self.scan_results[expected_layer] = data
+            self.get_logger().info(
+                f'Inventory result accepted for {expected_layer}: barcode={barcode}'
+            )
+            self.publish_mission_status(f'INVENTORY_ACCEPTED:{expected_layer}')
+        else:
+            self.get_logger().info(
+                f'Inventory result ignored: expected_location={expected_location}, '
+                f'current_scan={expected_layer}'
+            )
 
     def mission_target_callback(self, msg: String):
         target_name = msg.data.strip().upper()
@@ -212,6 +286,7 @@ class GotoPoint(Node):
             self.publish_mission_status('MISSION_REJECTED:UNKNOWN_TARGET')
             return
 
+        # WAIT_HOME 또는 FINISHED 상태에서만 새 미션 수락
         if self.phase not in ['WAIT_HOME', 'FINISHED']:
             self.get_logger().warn(
                 f'Received {target_name}, but mission is already running (phase={self.phase})'
@@ -250,7 +325,7 @@ class GotoPoint(Node):
             self.publish_mission_status('MISSION_REJECTED:POSITION_INVALID')
             return
 
-        # 현재 위치를 home으로 사용
+        # 홈 포지션 갱신: 매 미션마다 현재 위치를 홈으로 새로 설정
         self.home_x = self.current_x
         self.home_y = self.current_y
         self.home_z = self.current_z
@@ -263,23 +338,31 @@ class GotoPoint(Node):
         self.target_local_x, self.target_local_y = self.world_to_local_xy(
             self.target_world[0], self.target_world[1]
         )
-        self.target_local_z = self.target_world[2]
+        self.target_local_z = self.scan_layer_z[0]
 
+        # ── 상태 완전 초기화 ──
         self.phase = 'TAKEOFF'
         self.prev_phase = ''
-        self.offboard_setpoint_counter = 0
+        self.offboard_setpoint_counter = 0   # offboard/arm 재진입을 위해 반드시 0으로
         self.hover_counter = 0
         self.preland_hover_counter = 0
         self.land_command_sent = False
         self.disarm_sent = False
-        self.aruco_land_done = False  # ★ 새 미션 시작 시 초기화
+        self.aruco_land_done = False          # 이전 미션의 ARUCO_LAND_DONE 잔류 방지
+        self.aruco_land_wait_counter = 0     # WAIT_ARUCO_LAND 타임아웃 카운터 초기화
+
+        self.scan_index = 0
+        self.scan_hover_counter = 0
+        self.scan_wait_counter = 0
+        self.scan_results = {}
+        self.last_inventory_msg = None
 
         self.get_logger().info(
-            f'New mission selected: {self.target_name} -> world {self.target_world}'
+            f'New 4-layer inventory mission selected: {self.target_name} -> world {self.target_world}'
         )
         self.get_logger().info(
-            f'New mission local target: ({self.target_local_x:.2f}, '
-            f'{self.target_local_y:.2f}, {self.target_local_z:.2f})'
+            f'New mission local shelf target XY: ({self.target_local_x:.2f}, '
+            f'{self.target_local_y:.2f}), scan_z={self.scan_layer_z}'
         )
         self.get_logger().info(
             f'New mission home: ({self.home_x:.2f}, {self.home_y:.2f}, '
@@ -292,11 +375,6 @@ class GotoPoint(Node):
     # coordinate transform
     # ------------------------------------------------------------------
     def world_to_local_xy(self, goal_world_x: float, goal_world_y: float) -> Tuple[float, float]:
-        """
-        Observed mapping in this sim:
-          local x <- world y delta
-          local y <- world x delta
-        """
         if self.home_x is None or self.home_y is None:
             raise ValueError('home local position is not initialized')
 
@@ -314,6 +392,17 @@ class GotoPoint(Node):
         if self.home_yaw is None:
             return 0.0
         return normalize_angle(self.home_yaw + math.radians(self.yaw_align_deg))
+
+    def current_scan_location(self) -> Optional[str]:
+        if self.target_name is None:
+            return None
+        if self.scan_index < 0 or self.scan_index > 3:
+            return None
+        return f'{self.target_name}-L{self.scan_index + 1}'
+
+    def current_scan_z(self) -> float:
+        idx = max(0, min(3, self.scan_index))
+        return self.scan_layer_z[idx]
 
     def reached_x(self, target_x: float, tolerance: Optional[float] = None) -> bool:
         tol = self.reach_tolerance if tolerance is None else tolerance
@@ -345,6 +434,26 @@ class GotoPoint(Node):
 
     def compute_distance(self, x1, y1, z1, x2, y2, z2):
         return math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2)
+
+    def print_scan_summary(self):
+        self.get_logger().info('\n===== 선반 재고 조사 요약 =====')
+        if self.target_name is None:
+            return
+
+        for i in range(4):
+            loc = f'{self.target_name}-L{i + 1}'
+            data = self.scan_results.get(loc)
+            if data is None:
+                self.get_logger().info(f'{loc}: 결과 없음')
+            else:
+                self.get_logger().info(
+                    f"{loc}: barcode={data.get('barcode_detected')}, "
+                    f"품명={data.get('item_name')}, "
+                    f"수량={data.get('quantity')}, "
+                    f"가격={data.get('price')}, "
+                    f"입고일={data.get('inbound_date')}"
+                )
+        self.get_logger().info('===============================')
 
     # ------------------------------------------------------------------
     # publishers
@@ -388,36 +497,36 @@ class GotoPoint(Node):
         if (
             self.home_x is None or self.home_y is None or self.home_z is None or
             self.home_yaw is None or
-            self.target_local_x is None or self.target_local_y is None or self.target_local_z is None
+            self.target_local_x is None or self.target_local_y is None
         ):
             return None
 
         if self.phase == 'TAKEOFF':
-            return [self.home_x, self.home_y, self.target_local_z, self.home_yaw]
+            return [self.home_x, self.home_y, self.scan_layer_z[0], self.home_yaw]
 
         if self.phase == 'YAW_ALIGN':
-            return [self.home_x, self.home_y, self.target_local_z, self.aligned_yaw()]
+            return [self.home_x, self.home_y, self.scan_layer_z[0], self.aligned_yaw()]
 
         if self.phase == 'MOVE_GLOBAL_Y':
-            return [self.target_local_x, self.home_y, self.target_local_z, self.aligned_yaw()]
+            return [self.target_local_x, self.home_y, self.scan_layer_z[0], self.aligned_yaw()]
 
         if self.phase == 'MOVE_GLOBAL_X':
-            return [self.target_local_x, self.target_local_y, self.target_local_z, self.aligned_yaw()]
+            return [self.target_local_x, self.target_local_y, self.scan_layer_z[0], self.aligned_yaw()]
 
-        if self.phase == 'HOVER':
-            return [self.target_local_x, self.target_local_y, self.target_local_z, self.aligned_yaw()]
+        if self.phase == 'SCAN_LAYER':
+            return [self.target_local_x, self.target_local_y, self.current_scan_z(), self.aligned_yaw()]
 
         if self.phase == 'RETURN_GLOBAL_X':
-            return [self.target_local_x, self.home_y, self.target_local_z, self.aligned_yaw()]
+            return [self.target_local_x, self.home_y, self.scan_layer_z[0], self.aligned_yaw()]
 
         if self.phase == 'RETURN_GLOBAL_Y':
-            return [self.home_x, self.home_y, self.target_local_z, self.aligned_yaw()]
+            return [self.home_x, self.home_y, self.scan_layer_z[0], self.aligned_yaw()]
 
         if self.phase == 'PRELAND_YAW_HOME':
-            return [self.home_x, self.home_y, self.target_local_z, self.home_yaw]
+            return [self.home_x, self.home_y, self.scan_layer_z[0], self.home_yaw]
 
         if self.phase == 'PRELAND_SETTLE':
-            return [self.home_x, self.home_y, self.target_local_z, self.home_yaw]
+            return [self.home_x, self.home_y, self.scan_layer_z[0], self.home_yaw]
 
         return None
 
@@ -425,11 +534,11 @@ class GotoPoint(Node):
     # main timer
     # ------------------------------------------------------------------
     def timer_callback(self):
+        # ── WAIT_HOME / FINISHED: 다음 미션 대기 ──
         if self.phase == 'WAIT_HOME':
             if not self.position_valid:
                 self.get_logger().warn('Waiting for valid local position...')
                 return
-
             if self.pending_target_name is not None:
                 selected = self.pending_target_name
                 self.pending_target_name = None
@@ -437,12 +546,15 @@ class GotoPoint(Node):
             return
 
         if self.phase == 'FINISHED':
+            # 다음 미션 명령이 들어오면 즉시 새 미션 시작
             if self.pending_target_name is not None:
                 selected = self.pending_target_name
                 self.pending_target_name = None
+                self.get_logger().info(f'FINISHED 상태에서 새 미션 수신: {selected} → 미션 재시작')
                 self.start_new_mission(selected)
             return
 
+        # ── offboard control mode & setpoint 발행 ──
         if self.phase not in ['WAIT_DISARM', 'WAIT_ARUCO_LAND']:
             self.publish_offboard_control_mode()
 
@@ -488,7 +600,7 @@ class GotoPoint(Node):
                 )
 
         if self.phase == 'TAKEOFF':
-            if self.reached_z(self.target_local_z):
+            if self.reached_z(self.scan_layer_z[0]):
                 self.phase = 'YAW_ALIGN'
 
         elif self.phase == 'YAW_ALIGN':
@@ -501,13 +613,50 @@ class GotoPoint(Node):
 
         elif self.phase == 'MOVE_GLOBAL_X':
             if self.reached_y(self.target_local_y):
-                self.phase = 'HOVER'
+                self.phase = 'SCAN_LAYER'
+                self.scan_index = 0
+                self.scan_hover_counter = 0
+                self.scan_wait_counter = 0
+                self.publish_mission_status(f'SCAN_START:{self.target_name}')
 
-        elif self.phase == 'HOVER':
-            self.hover_counter += 1
-            if self.hover_counter >= self.hover_limit:
-                self.hover_counter = 0
-                self.phase = 'RETURN_GLOBAL_X'
+        elif self.phase == 'SCAN_LAYER':
+            current_loc = self.current_scan_location()
+            current_z = self.current_scan_z()
+
+            if self.reached_z(current_z):
+                self.scan_hover_counter += 1
+                self.scan_wait_counter += 1
+
+                if self.scan_hover_counter == 1:
+                    self.get_logger().info(f'Scanning {current_loc} at z={current_z:.2f}')
+                    self.publish_mission_status(f'SCAN_LAYER:{current_loc}')
+
+                got_result = current_loc in self.scan_results
+
+                if got_result:
+                    self.get_logger().info(f'Scan result received for {current_loc}')
+                elif self.scan_wait_counter >= self.scan_layer_timeout_limit:
+                    self.get_logger().warn(f'Scan timeout for {current_loc}')
+                    self.publish_mission_status(f'SCAN_TIMEOUT:{current_loc}')
+
+                hover_done = self.scan_hover_counter >= self.scan_layer_hover_limit
+                timeout_done = self.scan_wait_counter >= self.scan_layer_timeout_limit
+
+                if hover_done and (got_result or timeout_done or not self.scan_require_inventory_result):
+                    self.scan_index += 1
+                    self.scan_hover_counter = 0
+                    self.scan_wait_counter = 0
+
+                    if self.scan_index >= 4:
+                        self.print_scan_summary()
+                        self.publish_mission_status(f'SCAN_DONE:{self.target_name}')
+                        self.phase = 'RETURN_GLOBAL_X'
+                    else:
+                        next_loc = self.current_scan_location()
+                        self.get_logger().info(f'Moving to next layer: {next_loc}')
+                        self.publish_mission_status(f'SCAN_NEXT:{next_loc}')
+            else:
+                self.scan_hover_counter = 0
 
         elif self.phase == 'RETURN_GLOBAL_X':
             if self.reached_y(self.home_y):
@@ -531,30 +680,40 @@ class GotoPoint(Node):
                 )
                 if self.preland_hover_counter >= self.preland_hover_limit:
                     self.preland_hover_counter = 0
-                    # ★ aruco_land 에게 정밀 착륙 시작 신호 발행
                     self.get_logger().info('PRELAND_SETTLE 완료 → aruco_land 에 제어 넘김')
                     self.publish_mission_status('PRELAND_SETTLE')
                     self.phase = 'WAIT_ARUCO_LAND'
+                    self.aruco_land_wait_counter = 0  # 타임아웃 카운터 시작
             else:
                 self.preland_hover_counter = 0
 
-        # ★ 신규 페이즈: aruco_land 가 착륙 완료할 때까지 hover 유지
         elif self.phase == 'WAIT_ARUCO_LAND':
+            self.aruco_land_wait_counter += 1
+
             if self.aruco_land_done:
-                # aruco_land 가 NAV_LAND + disarm 까지 처리했으므로
-                # goto_point 는 FINISHED 로 바로 전환
+                # 정상 케이스: aruco_land가 완료 신호를 보냄
                 self.get_logger().info('aruco_land 완료 확인 → FINISHED')
-                self.phase = 'FINISHED'
-                self.last_finished_target = self.target_name
-                self.publish_mission_status(f'MISSION_FINISHED:{self.last_finished_target}')
+                self._finish_mission()
+
+            elif self.aruco_land_wait_counter >= self.aruco_land_timeout_limit:
+                # 타임아웃 케이스: ARUCO_LAND_DONE이 안 와도 FINISHED로 강제 전환
+                self.get_logger().warn(
+                    f'WAIT_ARUCO_LAND 타임아웃 ({self.aruco_land_timeout_sec}s) → 강제 FINISHED 전환'
+                )
+                self.publish_mission_status('ARUCO_LAND_TIMEOUT')
+                self._finish_mission()
+
             else:
-                # hover setpoint 계속 유지 (aruco_land 가 offboard 제어 중)
-                # goto_point 는 OCM + setpoint 발행을 멈추지 않아야
-                # PX4 offboard timeout 이 발생하지 않음
-                pass
+                # 타임아웃 경고 로그 (10초마다)
+                if self.aruco_land_wait_counter % 100 == 0:
+                    elapsed = self.aruco_land_wait_counter * 0.1
+                    remaining = self.aruco_land_timeout_sec - elapsed
+                    self.get_logger().info(
+                        f'WAIT_ARUCO_LAND 대기 중... {elapsed:.0f}s 경과 '
+                        f'(타임아웃까지 {remaining:.0f}s)'
+                    )
 
         elif self.phase == 'LAND_CMD':
-            # ★ aruco_land 가 없는 경우 대비 폴백 (aruco_land 미실행 시)
             if not self.land_command_sent:
                 self.get_logger().info('Sending NAV_LAND command (fallback)')
                 self.publish_vehicle_command(VehicleCommand.VEHICLE_CMD_NAV_LAND)
@@ -569,10 +728,18 @@ class GotoPoint(Node):
                     param1=0.0
                 )
                 self.disarm_sent = True
-                self.phase = 'FINISHED'
-                self.last_finished_target = self.target_name
-                self.publish_mission_status(f'MISSION_FINISHED:{self.last_finished_target}')
-                self.get_logger().info('Mission finished')
+                self._finish_mission()
+
+    def _finish_mission(self):
+        """미션 완료 처리 - FINISHED 상태로 전환하고 다음 미션 대기"""
+        self.last_finished_target = self.target_name
+        self.phase = 'FINISHED'
+        self.publish_mission_status(f'MISSION_FINISHED:{self.last_finished_target}')
+        self.get_logger().info(
+            f'미션 완료: {self.last_finished_target} → FINISHED 상태. 다음 미션 명령을 기다립니다.'
+        )
+        # UI에 준비 완료 상태 알림
+        self.publish_mission_status('WAITING_FOR_COMMAND')
 
 
 def main(args=None):

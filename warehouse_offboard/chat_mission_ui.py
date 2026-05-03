@@ -2,6 +2,7 @@
 
 import threading
 import time
+import math
 
 import pygame
 import rclpy
@@ -9,6 +10,50 @@ from rclpy.node import Node
 from std_msgs.msg import String
 
 from warehouse_offboard.llm_selector import TargetSelector
+
+
+# ── 상태 → 한글 매핑 (이모지 없음) ───────────────────────────
+STATUS_MAP = {
+    'WAITING_FOR_COMMAND':              '[대기] 명령 대기 중',
+    'MISSION_REJECTED:BUSY':            '[거부] 미션 진행 중',
+    'MISSION_REJECTED:UNKNOWN_TARGET':  '[거부] 알 수 없는 목표',
+    'MISSION_REJECTED:POSITION_INVALID':'[거부] 위치 오류',
+    'PRELAND_SETTLE':                   '[착륙] 착륙 준비 중',
+    'ARUCO_LAND_TIMEOUT':               '[경고] 착륙 타임아웃',
+}
+
+def friendly_status(raw: str) -> str:
+    if raw in STATUS_MAP:
+        return STATUS_MAP[raw]
+    if raw.startswith('MISSION_STARTED:'):
+        return f"[시작] 미션: {raw.split(':', 1)[1]}"
+    if raw.startswith('MISSION_FINISHED:'):
+        return f"[완료] 미션: {raw.split(':', 1)[1]}"
+    if raw.startswith('SCAN_START:'):
+        return f"[스캔] 시작: {raw.split(':', 1)[1]}"
+    if raw.startswith('SCAN_LAYER:'):
+        return f"[스캔] 층: {raw.split(':', 1)[1]}"
+    if raw.startswith('SCAN_NEXT:'):
+        return f"[스캔] 다음: {raw.split(':', 1)[1]}"
+    if raw.startswith('SCAN_DONE:'):
+        return f"[완료] 스캔: {raw.split(':', 1)[1]}"
+    if raw.startswith('SCAN_TIMEOUT:'):
+        return f"[타임] 스캔: {raw.split(':', 1)[1]}"
+    if raw.startswith('INVENTORY_ACCEPTED:'):
+        return f"[재고] 확인: {raw.split(':', 1)[1]}"
+    if raw.startswith('명령 수신:'):
+        return f"[수신] {raw.split(':', 1)[1].strip()}"
+    return raw
+
+
+def status_color(raw: str, C: dict):
+    if any(k in raw for k in ['FINISHED', 'WAITING', 'ACCEPTED', 'DONE', '완료', '대기']):
+        return C['ok']
+    if any(k in raw for k in ['REJECTED', 'TIMEOUT', 'ERROR', '거부', '경고', '타임']):
+        return C['err']
+    if any(k in raw for k in ['STARTED', 'SCAN', 'MOVE', 'TAKEOFF', 'RETURN', 'PRELAND', '시작', '스캔', '착륙', '수신']):
+        return C['run']
+    return C['gray']
 
 
 class MissionUiBridge(Node):
@@ -22,20 +67,18 @@ class MissionUiBridge(Node):
         self.selector = TargetSelector(['A-01', 'A-02', 'A-03', 'A-04'])
 
         self.latest_status = 'WAITING_FOR_COMMAND'
-        self.status_history = ['시스템 준비 완료. 목적지를 입력하세요.']
+        # (friendly_text, raw, timestamp) 리스트
+        self.status_history = []
         self.get_logger().info('Mission UI Bridge initialized')
 
     def status_callback(self, msg: String):
         self.latest_status = msg.data
-        if msg.data.startswith('MISSION_STARTED:'):
-            self.status_history.insert(0, f'미션 시작: {msg.data.split(":", 1)[1]}')
-        elif msg.data.startswith('MISSION_FINISHED:'):
-            self.status_history.insert(0, f'미션 완료: {msg.data.split(":", 1)[1]}')
-        elif msg.data.startswith('MISSION_REJECTED:'):
-            self.status_history.insert(0, f'미션 거부: {msg.data.split(":", 1)[1]}')
-        else:
-            self.status_history.insert(0, msg.data)
-        self.status_history = self.status_history[:10]
+        friendly = friendly_status(msg.data)
+        ts = time.strftime('%H:%M:%S')
+        # 연속 중복 무시
+        if not self.status_history or self.status_history[0][0] != friendly:
+            self.status_history.insert(0, (friendly, msg.data, ts))
+        self.status_history = self.status_history[:40]
 
     def publish_target(self, target_name: str):
         msg = String()
@@ -45,161 +88,394 @@ class MissionUiBridge(Node):
 
 
 class LLMInterface:
+    USER = 'user'
+    BOT  = 'bot'
+    SYS  = 'sys'
+
     def __init__(self, ros_node: MissionUiBridge):
         self.ros_node = ros_node
 
         pygame.init()
         pygame.key.start_text_input()
 
-        self.width, self.height = 800, 600
-        self.screen = pygame.display.set_mode((self.width, self.height))
+        self.W, self.H = 960, 700
+        self.screen = pygame.display.set_mode((self.W, self.H), pygame.RESIZABLE)
         pygame.display.set_caption("Drone Mission Chat UI")
 
-        self.font_large = pygame.font.SysFont('Noto Sans CJK KR', 36, bold=True)
-        self.font_medium = pygame.font.SysFont('Noto Sans CJK KR', 28)
-        self.font_small = pygame.font.SysFont('Noto Sans CJK KR', 20)
+        # 폰트 (이모지 없는 시스템 폰트)
+        self.font_title  = pygame.font.SysFont('Noto Sans CJK KR', 22, bold=True)
+        self.font_chat   = pygame.font.SysFont('Noto Sans CJK KR', 20)
+        self.font_small  = pygame.font.SysFont('Noto Sans CJK KR', 17)
+        self.font_tag    = pygame.font.SysFont('Noto Sans CJK KR', 16, bold=True)
+        self.font_status = pygame.font.SysFont('Noto Sans CJK KR', 18, bold=True)
+        self.font_input  = pygame.font.SysFont('Noto Sans CJK KR', 20)
 
-        self.colors = {
-            'background': (30, 30, 40),
-            'title': (200, 200, 255),
-            'text': (255, 255, 255),
-            'highlight': (255, 255, 0),
-            'info': (100, 255, 100),
-            'warning': (255, 100, 100),
-            'input_bg': (50, 50, 60),
-            'input_text': (255, 255, 255),
-            'command_bg': (40, 60, 40),
-            'response_bg': (60, 40, 70),
-            'status_bg': (45, 45, 65),
+        self.C = {
+            'bg':           (52,  53,  65),
+            'sidebar':      (28,  29,  32),
+            'header':       (60,  61,  75),
+            'user_bubble':  (16, 150, 115),
+            'bot_bubble':   (62,  64,  78),
+            'sys_bubble':   (42,  43,  55),
+            'input_bg':     (60,  61,  75),
+            'input_border': (90,  92, 110),
+            'divider':      (65,  67,  82),
+            'send':         (16, 150, 115),
+            'send_hover':   (20, 175, 138),
+            'white':        (230, 232, 235),
+            'gray':         (150, 152, 168),
+            'ok':           ( 72, 199, 142),
+            'err':          (235,  80,  80),
+            'run':          ( 80, 148, 255),
+            'warn':         (255, 185,   0),
+            # 태그 배경
+            'tag_ok':       ( 30,  90,  60),
+            'tag_err':      ( 90,  30,  30),
+            'tag_run':      ( 30,  55, 110),
+            'tag_gray':     ( 50,  50,  65),
         }
 
-        self.input_text = ""
-        self.input_rect = pygame.Rect(50, 500, 700, 40)
-        self.command_history = []
-        self.responses = []
-        self.max_history = 5
-        self.max_text_width = self.width - 150
+        # 채팅 로그: (type, text, ts)
+        self.chat_log = []
+        self._add_sys('드론 미션 시스템이 준비되었습니다.')
+        self._add_sys('사용 가능한 선반: A-01  A-02  A-03  A-04')
 
-        print("Drone mission chat UI initialized.")
-        print("Available targets: A-01, A-02, A-03, A-04")
+        self.input_text   = ''
+        self.cursor_vis   = True
+        self.cursor_tick  = 0
+        self.chat_scroll  = 0
+        self.log_scroll   = 0
+        self.max_chat_scroll = 0
+        self.max_log_scroll  = 0
 
-    def truncate_text(self, text, font, max_width):
-        if font.size(text)[0] <= max_width:
-            return text
-        ellipsis = "..."
-        ellipsis_width = font.size(ellipsis)[0]
-        available_width = max_width - ellipsis_width
-        left, right = 0, len(text)
-        while left < right:
-            mid = (left + right) // 2
-            if font.size(text[:mid])[0] <= available_width:
-                left = mid + 1
+        self.send_btn_rect = pygame.Rect(0, 0, 1, 1)
+        self.spinner_angle = 0
+        self._prev_status  = ''
+
+    # ── 채팅 로그 헬퍼 ────────────────────────────────────────
+    def _add_sys(self, t):
+        self.chat_log.append((self.SYS, t, time.strftime('%H:%M')))
+
+    def _add_bot(self, t):
+        self.chat_log.append((self.BOT, t, time.strftime('%H:%M')))
+
+    def _add_user(self, t):
+        self.chat_log.append((self.USER, t, time.strftime('%H:%M')))
+
+    # ── 텍스트 줄바꿈 ─────────────────────────────────────────
+    def _wrap(self, text, font, max_w):
+        words = text.split(' ')
+        lines, cur = [], ''
+        for w in words:
+            test = (cur + ' ' + w).strip()
+            if font.size(test)[0] <= max_w:
+                cur = test
             else:
-                right = mid
-        return text[:left - 1] + ellipsis
+                if cur:
+                    lines.append(cur)
+                cur = w
+        if cur:
+            lines.append(cur)
+        return lines or ['']
 
-    def render_ui(self):
-        self.screen.fill(self.colors['background'])
+    # ── 태그 그리기 ([완료] 같은 뱃지) ───────────────────────
+    def _tag_color(self, text):
+        if any(k in text for k in ['완료', '대기', '재고', 'ok']):
+            return self.C['tag_ok'], self.C['ok']
+        if any(k in text for k in ['거부', '경고', '타임', 'err']):
+            return self.C['tag_err'], self.C['err']
+        if any(k in text for k in ['시작', '스캔', '착륙', '수신', '다음', 'run']):
+            return self.C['tag_run'], self.C['run']
+        return self.C['tag_gray'], self.C['gray']
 
-        title = self.font_large.render("Drone Natural Language Control", True, self.colors['title'])
-        self.screen.blit(title, (self.width // 2 - title.get_width() // 2, 20))
-
-        y_pos = 80
-        self.screen.blit(self.font_medium.render("Mission Status:", True, self.colors['info']), (50, y_pos))
-        y_pos += 40
-
-        pygame.draw.rect(self.screen, self.colors['status_bg'], pygame.Rect(60, y_pos, self.width - 120, 35))
-        status_text = self.font_small.render(
-            self.truncate_text(self.ros_node.latest_status, self.font_small, self.width - 160),
-            True, self.colors['text'])
-        self.screen.blit(status_text, (70, y_pos + 7))
-        y_pos += 55
-
-        self.screen.blit(self.font_small.render("Recent System Messages:", True, self.colors['highlight']), (50, y_pos))
-        y_pos += 28
-
-        for msg in self.ros_node.status_history[:3]:
-            line_text = self.font_small.render(
-                self.truncate_text(msg, self.font_small, self.width - 140), True, self.colors['text'])
-            self.screen.blit(line_text, (70, y_pos))
-            y_pos += 24
-
-        y_pos = 230
-        self.screen.blit(self.font_medium.render("Command History:", True, self.colors['highlight']), (50, y_pos))
-        y_pos += 35
-
-        if self.command_history:
-            for i, (cmd, resp) in enumerate(zip(self.command_history, self.responses)):
-                if i >= self.max_history:
-                    break
-                pygame.draw.rect(self.screen, self.colors['command_bg'], pygame.Rect(60, y_pos, self.width - 120, 25))
-                self.screen.blit(self.font_small.render(
-                    self.truncate_text(f"You: {cmd}", self.font_small, self.max_text_width),
-                    True, self.colors['text']), (70, y_pos + 3))
-                y_pos += 28
-                pygame.draw.rect(self.screen, self.colors['response_bg'], pygame.Rect(60, y_pos, self.width - 120, 25))
-                self.screen.blit(self.font_small.render(
-                    self.truncate_text(f"Assistant: {resp}", self.font_small, self.max_text_width),
-                    True, self.colors['info']), (70, y_pos + 3))
-                y_pos += 32
+    def _draw_tag_line(self, surface, text, x, y, max_w):
+        """[태그] 텍스트 형식으로 태그 배경 강조해서 그리기"""
+        if text.startswith('[') and ']' in text:
+            bracket_end = text.index(']') + 1
+            tag = text[:bracket_end]
+            rest = text[bracket_end:].strip()
         else:
-            self.screen.blit(self.font_small.render(
-                "No commands yet. Type a destination below.", True, self.colors['text']), (70, y_pos))
+            tag = ''
+            rest = text
 
-        pygame.draw.rect(self.screen, self.colors['input_bg'], self.input_rect)
-        if self.input_text:
-            self.screen.blit(self.font_medium.render(
-                self.truncate_text(self.input_text, self.font_medium, self.input_rect.width - 20),
-                True, self.colors['input_text']), (self.input_rect.x + 10, self.input_rect.y + 5))
+        bg, fg = self._tag_color(text)
+        tx = x
 
-        self.screen.blit(self.font_small.render("Enter destination command:", True, self.colors['highlight']), (50, 470))
+        if tag:
+            tag_surf = self.font_tag.render(tag, True, fg)
+            tag_rect = pygame.Rect(tx - 2, y - 1, tag_surf.get_width() + 6, tag_surf.get_height() + 2)
+            pygame.draw.rect(surface, bg, tag_rect, border_radius=3)
+            surface.blit(tag_surf, (tx, y))
+            tx += tag_surf.get_width() + 8
 
-        y_pos = 550
-        for instruction in ["Available targets: A-01, A-02, A-03, A-04", "Press ENTER to send command", "ESC to quit"]:
-            self.screen.blit(self.font_small.render(instruction, True, self.colors['text']), (50, y_pos))
-            y_pos += 22
+        if rest:
+            rest_surf = self.font_small.render(rest[:40], True, self.C['white'])
+            surface.blit(rest_surf, (tx, y))
 
-    def process_and_execute_command(self, command: str):
-        self.command_history.insert(0, command)
-        try:
-            selected_target = self.ros_node.selector.select_target(command)
-            if selected_target is not None:
-                self.ros_node.publish_target(selected_target)
-                response_text = f'{selected_target}로 이해했습니다. 미션을 시작합니다.'
-            else:
-                response_text = '입력을 해석하지 못했습니다. 예: A-01, A-02, A-03, A-04'
-            self.responses.insert(0, response_text)
-            if len(self.command_history) > self.max_history:
-                self.command_history.pop()
-            if len(self.responses) > self.max_history:
-                self.responses.pop()
-        except Exception as e:
-            print(f"Error processing mission command: {e}")
-            self.responses.insert(0, f'오류 발생: {str(e)}')
-            if len(self.responses) > self.max_history:
-                self.responses.pop()
+        return self.font_small.get_linesize() + 3
+
+    # ── 말풍선 ────────────────────────────────────────────────
+    def _draw_bubble(self, surface, btype, text, ts, y, chat_w):
+        pad = 12
+        max_bw = int(chat_w * 0.70)
+        font = self.font_chat
+        ts_font = self.font_small
+
+        lines = self._wrap(text, font, max_bw - pad * 2)
+        lh = font.get_linesize()
+        bh = lh * len(lines) + pad * 2
+        bw = max(min(max(font.size(l)[0] for l in lines) + pad * 2, max_bw), 60)
+
+        if btype == self.USER:
+            bx = chat_w - bw - 12
+            bc = self.C['user_bubble']
+            tc = self.C['white']
+            r  = 14
+        elif btype == self.BOT:
+            bx = 12
+            bc = self.C['bot_bubble']
+            tc = self.C['white']
+            r  = 14
+        else:
+            bx = 12
+            bc = self.C['sys_bubble']
+            tc = self.C['gray']
+            r  = 6
+
+        pygame.draw.rect(surface, bc, pygame.Rect(bx, y, bw, bh), border_radius=r)
+        for i, line in enumerate(lines):
+            surface.blit(font.render(line, True, tc), (bx + pad, y + pad + i * lh))
+
+        ts_surf = ts_font.render(ts, True, self.C['gray'])
+        if btype == self.USER:
+            surface.blit(ts_surf, (bx + bw - ts_surf.get_width() - 2, y + bh + 2))
+        else:
+            surface.blit(ts_surf, (bx + 2, y + bh + 2))
+
+        return bh + ts_font.get_linesize() + 8
+
+    # ── 메인 렌더 ─────────────────────────────────────────────
+    def render_ui(self):
+        W, H = self.screen.get_size()
+        sidebar_w = 240
+        chat_x    = sidebar_w
+        chat_w    = W - sidebar_w
+        header_h  = 46
+        input_h   = 58
+        chat_area_h = H - header_h - input_h
+
+        self.screen.fill(self.C['bg'])
+
+        # ════════════════════════════════
+        # 사이드바
+        # ════════════════════════════════
+        pygame.draw.rect(self.screen, self.C['sidebar'], (0, 0, sidebar_w, H))
+        pygame.draw.line(self.screen, self.C['divider'], (sidebar_w, 0), (sidebar_w, H), 1)
+
+        # 타이틀
+        t = self.font_title.render('Mission Control', True, self.C['white'])
+        self.screen.blit(t, (12, 13))
+        pygame.draw.line(self.screen, self.C['divider'], (8, 40), (sidebar_w - 8, 40), 1)
+
+        # 현재 상태 + 스피너
+        raw = self.ros_node.latest_status
+        friendly = friendly_status(raw)
+        sc = status_color(raw, self.C)
+        is_running = any(k in raw for k in
+                         ['STARTED', 'SCAN', 'MOVE', 'TAKEOFF', 'RETURN', 'PRELAND'])
+
+        sy = 50
+        # 스피너 or 원형 인디케이터
+        if is_running:
+            self.spinner_angle = (self.spinner_angle + 5) % 360
+            for i in range(8):
+                a = math.radians(self.spinner_angle + i * 45)
+                alpha_c = tuple(int(c * (i + 1) / 8) for c in sc)
+                ex = int(14 + 7 * math.cos(a))
+                ey = int(sy + 8 + 7 * math.sin(a))
+                pygame.draw.circle(self.screen, alpha_c, (ex, ey), 2)
+        else:
+            pygame.draw.circle(self.screen, sc, (14, sy + 8), 5)
+
+        # 상태 텍스트
+        label = self.font_status.render(
+            '진행 중' if is_running else ('대기' if 'WAITING' in raw else '완료'),
+            True, sc)
+        self.screen.blit(label, (26, sy))
+        sy += label.get_height() + 4
+
+        # 현재 상태 상세
+        for line in self._wrap(friendly, self.font_small, sidebar_w - 18):
+            self.screen.blit(self.font_small.render(line, True, sc), (10, sy))
+            sy += self.font_small.get_linesize() + 1
+
+        # 구분선
+        sy += 6
+        pygame.draw.line(self.screen, self.C['divider'], (8, sy), (sidebar_w - 8, sy), 1)
+        sy += 8
+
+        # 시스템 로그 타이틀
+        self.screen.blit(
+            self.font_status.render('시스템 로그', True, self.C['gray']), (10, sy))
+        sy += self.font_status.get_linesize() + 4
+
+        log_area_h = H - sy - 4
+        log_surface = pygame.Surface((sidebar_w, max(log_area_h, 2000)))
+        log_surface.fill(self.C['sidebar'])
+
+        ly = 4
+        for friendly_t, raw_t, ts_t in self.ros_node.status_history:
+            # 타임스탬프
+            ts_surf = self.font_small.render(ts_t, True, self.C['gray'])
+            log_surface.blit(ts_surf, (4, ly))
+            ly += ts_surf.get_height() + 1
+            # 태그 + 텍스트
+            ly += self._draw_tag_line(log_surface, friendly_t, 4, ly, sidebar_w - 8)
+            # 구분선
+            pygame.draw.line(log_surface, self.C['divider'], (4, ly + 1), (sidebar_w - 8, ly + 1), 1)
+            ly += 5
+
+        self.max_log_scroll = max(0, ly - log_area_h)
+        self.log_scroll = min(self.log_scroll, self.max_log_scroll)
+        self.screen.blit(log_surface, (0, sy),
+                         area=pygame.Rect(0, self.log_scroll, sidebar_w, log_area_h))
+
+        # ════════════════════════════════
+        # 헤더
+        # ════════════════════════════════
+        pygame.draw.rect(self.screen, self.C['header'], (chat_x, 0, chat_w, header_h))
+        pygame.draw.line(self.screen, self.C['divider'], (chat_x, header_h), (W, header_h), 1)
+        ht = self.font_title.render('Drone Natural Language Control', True, self.C['white'])
+        self.screen.blit(ht, (chat_x + 14, (header_h - ht.get_height()) // 2))
+
+        # ════════════════════════════════
+        # 채팅 영역
+        # ════════════════════════════════
+        chat_surface = pygame.Surface((chat_w, max(chat_area_h, 3000)))
+        chat_surface.fill(self.C['bg'])
+
+        cy = 12
+        for btype, text, ts in self.chat_log:
+            cy += self._draw_bubble(chat_surface, btype, text, ts, cy, chat_w)
+            cy += 6
+
+        self.max_chat_scroll = max(0, cy - chat_area_h + 20)
+        self.chat_scroll = min(self.chat_scroll, self.max_chat_scroll)
+        self.screen.blit(chat_surface, (chat_x, header_h),
+                         area=pygame.Rect(0, self.chat_scroll, chat_w, chat_area_h))
+
+        # ════════════════════════════════
+        # 입력창
+        # ════════════════════════════════
+        iy = H - input_h
+        pygame.draw.rect(self.screen, self.C['header'], (chat_x, iy, chat_w, input_h))
+        pygame.draw.line(self.screen, self.C['divider'], (chat_x, iy), (W, iy), 1)
+
+        btn_w, btn_h = 68, 36
+        btn_x = W - btn_w - 10
+        btn_y = iy + (input_h - btn_h) // 2
+        self.send_btn_rect = pygame.Rect(btn_x, btn_y, btn_w, btn_h)
+
+        mx, my = pygame.mouse.get_pos()
+        hover = self.send_btn_rect.collidepoint(mx, my)
+        pygame.draw.rect(self.screen,
+                         self.C['send_hover'] if hover else self.C['send'],
+                         self.send_btn_rect, border_radius=8)
+        bs = self.font_status.render('전송 >', True, self.C['white'])
+        self.screen.blit(bs, (btn_x + (btn_w - bs.get_width()) // 2,
+                               btn_y + (btn_h - bs.get_height()) // 2))
+
+        inp_rect = pygame.Rect(chat_x + 10, btn_y, btn_x - chat_x - 16, btn_h)
+        pygame.draw.rect(self.screen, self.C['input_bg'], inp_rect, border_radius=8)
+        pygame.draw.rect(self.screen, self.C['input_border'], inp_rect, 1, border_radius=8)
+
+        # 커서 깜빡임
+        self.cursor_tick += 1
+        if self.cursor_tick % 28 == 0:
+            self.cursor_vis = not self.cursor_vis
+        display = self.input_text + ('|' if self.cursor_vis else '')
+
+        it = self.font_input.render(display, True, self.C['white'])
+        clip_w = inp_rect.width - 16
+        if it.get_width() > clip_w:
+            it = it.subsurface((it.get_width() - clip_w, 0, clip_w, it.get_height()))
+        self.screen.blit(it, (inp_rect.x + 10, inp_rect.y + (btn_h - it.get_height()) // 2))
+
+        if not self.input_text:
+            ph = self.font_input.render('목적지를 입력하세요 (예: A-01, a-01 가줘)', True, self.C['gray'])
+            self.screen.blit(ph, (inp_rect.x + 10, inp_rect.y + (btn_h - ph.get_height()) // 2))
+
+    # ── ROS 상태 → 채팅창 동기화 ──────────────────────────────
+    def _sync_status(self):
+        raw = self.ros_node.latest_status
+        if raw == self._prev_status:
+            return
+        self._prev_status = raw
+
+        # 채팅창에는 중요 이벤트만 시스템 메시지로 추가
+        if any(k in raw for k in ['MISSION_FINISHED', 'MISSION_STARTED',
+                                   'MISSION_REJECTED', 'WAITING_FOR_COMMAND']):
+            self._add_sys(friendly_status(raw))
+            self.chat_scroll = self.max_chat_scroll
+
+    def _send(self):
+        command = self.input_text.strip()
+        if not command:
+            return
+        self.input_text = ''
+        self._add_user(command)
+        self.chat_scroll = self.max_chat_scroll
+
+        def _task():
+            try:
+                selected = self.ros_node.selector.select_target(command)
+                if selected:
+                    self.ros_node.publish_target(selected)
+                    self._add_bot(f'{selected} 선반으로 미션을 시작합니다.')
+                else:
+                    self._add_bot('목적지를 이해하지 못했습니다. 예: A-01, A-02, A-03, A-04')
+            except Exception as e:
+                self._add_bot(f'오류 발생: {e}')
+            self.chat_scroll = self.max_chat_scroll
+
+        threading.Thread(target=_task, daemon=True).start()
 
     def run(self):
         clock = pygame.time.Clock()
         running = True
-        time.sleep(1.0)
+        time.sleep(0.5)
         try:
             while running:
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         running = False
+                    elif event.type == pygame.VIDEORESIZE:
+                        self.screen = pygame.display.set_mode(event.size, pygame.RESIZABLE)
                     elif event.type == pygame.KEYDOWN:
                         if event.key == pygame.K_ESCAPE:
                             running = False
-                        elif event.key == pygame.K_RETURN and self.input_text:
-                            command = self.input_text
-                            self.input_text = ""
-                            threading.Thread(target=self.process_and_execute_command,
-                                             args=(command,), daemon=True).start()
+                        elif event.key == pygame.K_RETURN:
+                            self._send()
                         elif event.key == pygame.K_BACKSPACE:
                             self.input_text = self.input_text[:-1]
                     elif event.type == pygame.TEXTINPUT:
                         self.input_text += event.text
+                    elif event.type == pygame.MOUSEBUTTONDOWN:
+                        if event.button == 1 and self.send_btn_rect.collidepoint(event.pos):
+                            self._send()
+                        elif event.button == 4:
+                            # 마우스가 사이드바 위면 로그 스크롤, 아니면 채팅 스크롤
+                            if pygame.mouse.get_pos()[0] < 240:
+                                self.log_scroll = max(0, self.log_scroll - 30)
+                            else:
+                                self.chat_scroll = max(0, self.chat_scroll - 30)
+                        elif event.button == 5:
+                            if pygame.mouse.get_pos()[0] < 240:
+                                self.log_scroll = min(self.max_log_scroll, self.log_scroll + 30)
+                            else:
+                                self.chat_scroll = min(self.max_chat_scroll, self.chat_scroll + 30)
+
+                self._sync_status()
                 self.render_ui()
                 pygame.display.flip()
                 clock.tick(30)

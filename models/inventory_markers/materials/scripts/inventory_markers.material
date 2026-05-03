@@ -1,8 +1,0 @@
-material InventoryMarkers/BoxBarcodeA01 { technique { pass { lighting off ambient 1 1 1 1 diffuse 1 1 1 1 emissive 1 1 1 1 texture_unit { texture box_barcode_A-01.png filtering none } } } }
-material InventoryMarkers/BoxBarcodeA02 { technique { pass { lighting off ambient 1 1 1 1 diffuse 1 1 1 1 emissive 1 1 1 1 texture_unit { texture box_barcode_A-02.png filtering none } } } }
-material InventoryMarkers/BoxBarcodeA03 { technique { pass { lighting off ambient 1 1 1 1 diffuse 1 1 1 1 emissive 1 1 1 1 texture_unit { texture box_barcode_A-03.png filtering none } } } }
-material InventoryMarkers/BoxBarcodeA04 { technique { pass { lighting off ambient 1 1 1 1 diffuse 1 1 1 1 emissive 1 1 1 1 texture_unit { texture box_barcode_A-04.png filtering none } } } }
-material InventoryMarkers/ShelfTextA01 { technique { pass { lighting off ambient 1 1 1 1 diffuse 1 1 1 1 emissive 1 1 1 1 texture_unit { texture shelf_text_A-01.bmp filtering none } } } }
-material InventoryMarkers/ShelfTextA02 { technique { pass { lighting off ambient 1 1 1 1 diffuse 1 1 1 1 emissive 1 1 1 1 texture_unit { texture shelf_text_A-02.bmp filtering none } } } }
-material InventoryMarkers/ShelfTextA03 { technique { pass { lighting off ambient 1 1 1 1 diffuse 1 1 1 1 emissive 1 1 1 1 texture_unit { texture shelf_text_A-03.bmp filtering none } } } }
-material InventoryMarkers/ShelfTextA04 { technique { pass { lighting off ambient 1 1 1 1 diffuse 1 1 1 1 emissive 1 1 1 1 texture_unit { texture shelf_text_A-04.bmp filtering none } } } }

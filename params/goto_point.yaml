@@ -5,7 +5,7 @@ goto_point:
     preland_hover_time_sec: 2.0
     preland_xy_tolerance: 0.10
 
-    # 이륙 구역 중앙 (warehouse_v5 기준)
+    # 이륙 구역 중앙
     spawn_world_x: 2.1
     spawn_world_y: -1.5
     yaw_align_deg: 90.0
@@ -16,7 +16,7 @@ goto_point:
     yaw_speed_deg_s: 15.0
     land_speed_mps: 0.20
 
-    # 웨이포인트 (warehouse_v5 랙 위치 기준, 랙 앞 통로)
+    # 웨이포인트
     # A-01: 랙( 0.5, -1.7) → 통로 ( 0.5, -0.8)
     # A-02: 랙(-1.7, -1.7) → 통로 (-1.7, -0.8)
     # A-03: 랙( 0.5,  0.7) → 뒤쪽 ( 0.5,  1.4)
@@ -27,6 +27,15 @@ goto_point:
     waypoint_z: [-1.8, -1.8, -1.8, -1.8]
 
     target_name: "A-01"
+
+
+    scan_layer_z: [-0.65, -1.05, -1.45, -1.85]
+
+    scan_layer_hover_time_sec: 2.0
+
+    scan_layer_timeout_sec: 8.0
+
+    scan_require_inventory_result: true
 
 aruco_land:
   ros__parameters:

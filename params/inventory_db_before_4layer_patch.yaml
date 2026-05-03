@@ -1,0 +1,28 @@
+inventory_by_barcode:
+  SKU001:
+    expected_location: "A-01"
+    item_name: "안전장갑"
+    quantity: 35
+    price: 12000
+    inbound_date: "2026-04-01"
+
+  SKU002:
+    expected_location: "A-02"
+    item_name: "포장테이프"
+    quantity: 48
+    price: 3500
+    inbound_date: "2026-04-03"
+
+  SKU003:
+    expected_location: "A-03"
+    item_name: "육각볼트"
+    quantity: 120
+    price: 8000
+    inbound_date: "2026-04-05"
+
+  SKU004:
+    expected_location: "A-04"
+    item_name: "케이블타이"
+    quantity: 90
+    price: 4500
+    inbound_date: "2026-04-08"

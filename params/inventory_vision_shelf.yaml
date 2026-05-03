@@ -1,0 +1,27 @@
+inventory_vision_shelf:
+  ros__parameters:
+    # Capstone1의 gz_camera_bridge가 내보내는 전방 카메라 토픽 기준
+    image_topic: "/camera/image_raw"
+
+    mission_target_topic: "/mission_target_name"
+    result_topic: "/inventory_scan_result"
+    debug_image_topic: "/inventory_debug_image"
+    inventory_db_path: "/home/iasl/capstone_ws/src/warehouse_offboard/params/inventory_db_shelf.yaml"
+
+    scan_every_n_frames: 3
+    duplicate_cooldown_sec: 3.0
+
+    # 박스 QR/바코드와 선반 텍스트가 둘 다 보일 때만 결과 확정
+    require_both_barcode_and_shelf_text: true
+
+    # 처음 테스트할 때는 false 권장. 목표 선반과 OCR 선반이 다르면 무시하게 하려면 true.
+    require_target_match: false
+
+    publish_debug_image: true
+
+    # OCR 전처리 및 OCR 영역. 드론 카메라 화면에서 선반 텍스트 위치에 맞게 조정.
+    resize_for_ocr: 3.0
+    shelf_ocr_roi_x_min_ratio: 0.10
+    shelf_ocr_roi_x_max_ratio: 0.90
+    shelf_ocr_roi_y_min_ratio: 0.35
+    shelf_ocr_roi_y_max_ratio: 1.00
